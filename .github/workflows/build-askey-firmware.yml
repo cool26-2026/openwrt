@@ -57,7 +57,12 @@ jobs:
         run: |
           export FORCE_UNSAFE_CONFIGURE=1
           # 【全核心火力全開】放行全域最高通道，命令微軟伺服器多核心並行全速大衝刺！
-          make -j$(nproc) V=s
+      - name: Compile and Package Firmware
+        run: |
+          export FORCE_UNSAFE_CONFIGURE=1
+          # 【單核心逼供】命令微軟伺服器只用單個核心，抓出最後一個內核衝突檔案！
+          make -j1 V=s
+
 
       - name: Upload Finished Firmware Artifacts
         uses: actions/upload-artifact@v4
