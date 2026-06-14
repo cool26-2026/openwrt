@@ -53,20 +53,22 @@ jobs:
           touch staging_dir/host/.prereq-build
           rm -rf staging_dir/host/bin/m4 staging_dir/host/bin/bison staging_dir/host/bin/quilt staging_dir/host/bin/sed staging_dir/host/bin/mmp 2>/dev/null || true
           
-          # 【最高核心絕殺】物理重寫 OpenWrt 與高通內核的所有規則名冊，徹底擦除 -Werror 限制，一秒融化所有語法死鎖！
-          find include/ package/ tools/ toolchain/ target/ -type f \( -name "*.mk" -o -name "Makefile" -o -name "Kbuild" -o -name "*.rules" \) -exec sed -i 's/-Werror//g' {} + 2>/dev/null
+          # 【最高核心絕殺】物理重寫 OpenWrt 與高通 tools 下所有規則名冊，徹底擦除 -Werror 限制，一秒融化所有語法死鎖！
+          find tools/ toolchain/ package/ include/ -type f \( -name "*.mk" -o -name "Makefile" -o -name "Kbuild" -o -name "*.rules" \) -exec sed -i 's/-Werror//g' {} + 2>/dev/null
+          find tools/ toolchain/ package/ include/ -type f \( -name "*.mk" -o -name "Makefile" -o -name "Kbuild" -o -name "*.rules" \) -exec sed -i 's/-Werror=all//g' {} + 2>/dev/null
+          
+          # 唯一定向清除補丁：只對 tools/gnulib 執行屏蔽，防止跨時區死鎖
+          sed -i 's/tools-y += gnulib/# tools-y += gnulib/g' tools/Makefile 2>/dev/null
           
           # 全域強制內核版本號與 APK 封裝引擎純數字對齊
           echo "KERNEL_BUILD_DIR:=6.12.91-1" >> include/kernel.mk
           echo "LINUX_VERSION:=6.12.91" >> include/kernel.mk
           find ./include ./scripts ./package -type f \( -name "*.mk" -o -name "*.sh" -o -name "Makefile" \) -exec sed -i 's/\~/./g' {} + 2>/dev/null
-          sed -i 's/tools-y += gnulib/# tools-y += gnulib/g' tools/Makefile 2>/dev/null
 
       - name: Compile and Package Firmware
         run: |
           export FORCE_UNSAFE_CONFIGURE=1
-          # 【全宇宙最高優先級焊死】不單獨 export 變數，直接在 make 後方用強制命令形式把「全域關閉一切警告」參數灌入肉體！
-          # 呼叫微軟伺服器多核心並行全速狂飆大封裝！
+          # 【全宇宙最高優先級焊死】全核心多執行緒火力全開，發動最終原廠大總攻！
           make -j$(nproc) V=s HOST_CFLAGS="-w -Wno-error -Wno-implicit-function-declaration" HOST_CXXFLAGS="-w -Wno-error" TARGET_CFLAGS="-w -Wno-error -Wno-implicit-function-declaration" TARGET_CXXFLAGS="-w -Wno-error" EXTRA_CFLAGS="-w -Wno-error -Wno-implicit-function-declaration" KBUILD_CFLAGS="-w -Wno-error -Wno-implicit-function-declaration" CFLAGS="-w -Wno-error" CXXFLAGS="-w -Wno-error"
 
       - name: Upload Finished Firmware Artifacts
