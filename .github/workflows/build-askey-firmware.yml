@@ -85,9 +85,9 @@ jobs:
 
       - name: Hard Copy Real Large Firmware Binaries
         run: |
-          # 【最高核心全域抄底絕殺】不管檔案藏在哪個虛擬目錄，地毯式搜尋硬碟裡大於 10MB 的實體大固件，強制實體物理複製出來！
+          # 【最高核心全域抄底絕殺】不再限制大小寫名字！只要體積大於 15MB 的實體二進位檔案，通通給我強力打撈複製出來！
           mkdir -p /home/runner/askey_output
-          find bin/ -type f -size +10M -name "openwrt-*" -exec cp -v {} /home/runner/askey_output/ \;
+          find bin/targets/ -type f -size +15M -exec cp -v {} /home/runner/askey_output/ \;
           echo "==> Checked Copied Files in Output Cargo:"
           ls -lh /home/runner/askey_output/
 
