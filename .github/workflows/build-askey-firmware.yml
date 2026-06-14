@@ -81,14 +81,18 @@ jobs:
           export CFLAGS="-w -Wno-error"
           export CXXFLAGS="-w -Wno-error"
           
-          # 【全宇宙最高核心絕殺】追加 -i 參數，強制全自動忽略一切最末端工具報警，強行一通到底出成品固件！
-          # 呼叫微軟伺服器多核心並行全速狂飆大封裝！
           make -j$(nproc) V=s CONFIG_AUTOREBUILD=n -i || true
+
+      - name: Collect Real Binary Files
+        run: |
+          # 【最終絕殺步驟】原地建立一個健康的實體貨艙資料夾，把所有真二進位大固件強制搬移進去，徹底杜絕快捷鏈接！
+          mkdir -p /home/runner/askey_output
+          find bin/targets/qualcommbe/ipq95xx/ -type f -exec cp -v {} /home/runner/askey_output/ \;
+          echo "==> Checked Files in Output Folder:"
+          ls -lh /home/runner/askey_output/
 
       - name: Upload Finished Firmware Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: Askey_SBE1V1K_Firmware_746d79cb72
-          path: bin/targets/qualcommbe/ipq95xx/**
-
-
+          path: /home/runner/askey_output/
