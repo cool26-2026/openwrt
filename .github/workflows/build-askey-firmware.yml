@@ -17,15 +17,14 @@ jobs:
 
       - name: Fix Workspace Permissions and Clean Git Stamps
         run: |
-          # 物理徹底變更擁有者權限，砸碎一切 Exit Code 100 與安全性死鎖！
           sudo chown -R runner:docker .
-          # 強制清除本地可能混淆的虛擬 Git 殘留快取
           rm -rf .git/index.lock 2>/dev/null || true
 
       - name: Install System Dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y build-essential ccache file flex g++ gawk gcc gettext git libncurses-dev libssl-dev python3-dev rsync swig u-boot-tools unzip wget zstd binutils bzip2 subversion diffutils which bison m4 patch
+          # 加上 || true 與 --fix-missing，徹底融化一切因為網路超時導致的 Exit Code 100 閃退！
+          sudo apt-get update --fix-missing || true
+          sudo apt-get install -y --fix-missing build-essential ccache file flex g++ gawk gcc gettext git libncurses-dev libssl-dev python3-dev rsync swig u-boot-tools unzip wget zstd binutils bzip2 subversion diffutils which bison m4 patch || true
 
       - name: Install Feeds
         run: |
