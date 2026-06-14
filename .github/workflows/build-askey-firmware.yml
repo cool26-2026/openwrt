@@ -83,16 +83,16 @@ jobs:
           
           make -j$(nproc) V=s CONFIG_AUTOREBUILD=n -i || true
 
-      - name: Hard Copy Real Large Firmware Binaries
+      - name: Tar Package Real Firmware Binaries
         run: |
-          # 建立乾淨貨物過渡夾，全面兼容大寫與小寫路徑
+          # 【全宇宙最終放行絕殺】用帶有 -h 參數的 Tar 引擎，強制將全域虛擬快捷連結原地還原、打包成實體大檔案！
           mkdir -p /home/runner/askey_output
-          cp -v bin/targets/*/*/* /home/runner/askey_output/ 2>/dev/null || true
-          echo "==> Checked Copied Files in Output Cargo:"
+          tar -chzvf /home/runner/askey_output/askey_firmware_6.18.tar.gz bin/targets/
+          echo "==> Checked Tar Archive size:"
           ls -lh /home/runner/askey_output/
 
       - name: Upload Finished Firmware Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: Askey_SBE1V1K_Firmware_746d79cb72
-          path: /home/runner/askey_output/
+          path: /home/runner/askey_output/askey_firmware_6.18.tar.gz
