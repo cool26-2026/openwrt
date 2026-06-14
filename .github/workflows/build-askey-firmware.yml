@@ -13,7 +13,14 @@ jobs:
         with:
           repository: 'andrewjlamarche/openwrt'
           ref: 'sbe1v1k'
-          path: 'openwrt'
+          path: '.'
+
+      - name: Fix Workspace Permissions and Clean Git Stamps
+        run: |
+          # 物理徹底變更擁有者權限，砸碎一切 Exit Code 100 與安全性死鎖！
+          sudo chown -R runner:docker .
+          # 強制清除本地可能混淆的虛擬 Git 殘留快取
+          rm -rf .git/index.lock 2>/dev/null || true
 
       - name: Install System Dependencies
         run: |
@@ -23,7 +30,6 @@ jobs:
       - name: Install Feeds
         run: |
           ./scripts/feeds install -a
-        working-directory: ./openwrt
 
       - name: Configure Askey Profile
         run: |
@@ -32,22 +38,19 @@ jobs:
           echo "CONFIG_TARGET_qualcommbe_ipq95xx_DEVICE_askey_sbe1v1k=y" >> .config
           echo "CONFIG_PACKAGE_luci=y" >> .config
           make defconfig
-        working-directory: ./openwrt
 
       - name: Apply Universal Patch
         run: |
           find ./include ./scripts ./package -type f \( -name "*.mk" -o -name "*.sh" -o -name "Makefile" \) -exec sed -i 's/\~/./g' {} + 2>/dev/null
           sed -i 's/tools-y += gnulib/# tools-y += gnulib/g' tools/Makefile 2>/dev/null
-        working-directory: ./openwrt
 
       - name: Compile and Package Firmware
         run: |
           export FORCE_UNSAFE_CONFIGURE=1
           make -j$(nproc) V=s
-        working-directory: ./openwrt
 
       - name: Upload Finished Firmware Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: Askey_SBE1V1K_Firmware_746d79cb72
-          path: openwrt/bin/targets/qualcommbe/ipq95xx/*sbe1v1k*
+          path: bin/targets/qualcommbe/ipq95xx/*sbe1v1k*
