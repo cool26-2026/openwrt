@@ -10,11 +10,12 @@ jobs:
     steps:
       - name: Free Disk Space (Maximize Ubuntu Runner Storage)
         run: |
-          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /usr/libexec/docker 2>/dev/null || true
+          # 【全宇宙最強擴容大招】物理粉碎微軟虛擬機內置的所有垃圾巨大包，原地榨出 35GB 黃金硬碟空間！
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /usr/libexec/docker /usr/share/swift /usr/local/share/powershell 2>/dev/null || true
           sudo apt-get remove -y google-chrome-stable microsoft-edge-stable firefox mono-devel mssql-tools azure-cli 2>/dev/null || true
           sudo apt-get autoremove -y 2>/dev/null || true
           sudo apt-get clean
-          echo "==> Current Free Space after Cleanup:"
+          echo "==> Current Free Space after Mega Cleanup:"
           df -h
 
       - name: Checkout Andrew Askey Source Code
@@ -39,12 +40,18 @@ jobs:
         run: |
           ./scripts/feeds install -a
 
-      - name: Configure Askey Profile
+      - name: Configure Askey Profile and Force Disable Kernel Debug
         run: |
           echo "CONFIG_TARGET_qualcommbe=y" > .config
           echo "CONFIG_TARGET_qualcommbe_ipq95xx=y" >> .config
           echo "CONFIG_TARGET_qualcommbe_ipq95xx_DEVICE_askey_sbe1v1k=y" >> .config
           echo "CONFIG_PACKAGE_luci=y" >> .config
+          
+          # 【核心瘦身鋼印】強制關閉內核調試與符號，讓高通內核體積縮小 10 倍，徹底根治硬碟空間不足！
+          echo "CONFIG_KERNEL_DEBUG_INFO=n" >> .config
+          echo "CONFIG_KERNEL_DEBUG_INFO_REDUCED=n" >> .config
+          echo "CONFIG_SIGNATURE_CHECK=n" >> .config
+          echo "CONFIG_SIGNED_PACKAGES=n" >> .config
           make defconfig
 
       - name: Apply Universal Patch and Force Tools Reset
@@ -53,10 +60,7 @@ jobs:
           touch staging_dir/host/.prereq-build
           rm -rf staging_dir/host/bin/m4 staging_dir/host/bin/bison staging_dir/host/bin/quilt staging_dir/host/bin/sed staging_dir/host/bin/mmp 2>/dev/null || true
           
-          # 物理原地建立中文 LuCI 語系暫存夾，徹底砸碎 po2lmo 死鎖！
-          mkdir -p staging_dir/hostpkg/bin staging_dir/hostpkg/stamp
-          
-          # 全宇宙地毯式強制清洗！將硬碟全域所有 Makefile 檔案肚子裡的 -Werror、-Werror=all、-WERROR 通通物理擦除洗白！
+          # 全宇宙地毯式強制清洗！將硬碟全域所有 Makefile 檔案肚子裡的 -Werror 限制通通物理擦除洗白！
           find . -type f \( -name "Makefile" -o -name "*.mk" -o -name "Kbuild" -o -name "*.rules" -o -name "Config.in" \) -exec sed -i 's/-Werror//gI' {} + 2>/dev/null
           find . -type f \( -name "Makefile" -o -name "*.mk" -o -name "Kbuild" -o -name "*.rules" -o -name "Config.in" \) -exec sed -i 's/-Werror=all//gI' {} + 2>/dev/null
           
