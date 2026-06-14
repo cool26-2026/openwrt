@@ -46,7 +46,8 @@ jobs:
           echo "CONFIG_TARGET_qualcommbe_ipq95xx_DEVICE_askey_sbe1v1k=y" >> .config
           echo "CONFIG_PACKAGE_luci=y" >> .config
           
-          # 【終極全域安全豁免】物理重寫設定檔，關閉一切簽名審查，強迫 APK 封裝引擎全面放行！
+          # 【最高核心絕殺】物理重寫設定檔，物理鎖死全域配置，徹底杜絕自動重構倒灌！
+          echo "CONFIG_AUTOREBUILD=n" >> .config
           echo "CONFIG_SIGNATURE_CHECK=n" >> .config
           echo "CONFIG_SIGNED_PACKAGES=n" >> .config
           echo "CONFIG_KERNEL_DEBUG_INFO=n" >> .config
@@ -83,8 +84,9 @@ jobs:
           export CFLAGS="-w -Wno-error"
           export CXXFLAGS="-w -Wno-error"
           
+          # 【最終總突圍】將 CONFIG_AUTOREBUILD=n 作為靜態引數直接焊死在 make 的指令肉體上！
           # 呼叫微軟伺服器多核心並行全速狂飆大封裝！
-          make -j$(nproc) V=s
+          make -j$(nproc) V=s CONFIG_AUTOREBUILD=n
 
       - name: Upload Finished Firmware Artifacts
         uses: actions/upload-artifact@v4
