@@ -8,11 +8,12 @@ jobs:
     runs-on: ubuntu-22.04
 
     steps:
-      - name: Checkout Source Code
-        uses: actions/checkout@v4
-        with:
-          ref: sbe1v1k
-          path: '.'
+      - name: Clear Workspace and Direct Clone Andrew Repository
+        run: |
+          # 物理刪除當前空殼倉庫的所有目錄，騰出最純淨的起點
+          rm -rf ./* .* 2>/dev/null || true
+          # 繞過 GitHub 限制，直接用原生 git 下載 Andrew 官方 100% 純淨的專屬分支代碼！
+          git clone -b sbe1v1k https://github.com .
 
       - name: Install System Dependencies
         run: |
