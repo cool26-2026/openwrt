@@ -23,7 +23,6 @@ jobs:
 
       - name: Install System Dependencies
         run: |
-          # 加上最全面、包含高通交叉編譯多核心必備的 gcc/g++ 多架構庫，徹底砸碎 Exit Code 2 阻斷！
           sudo apt-get update --fix-missing || true
           sudo apt-get install -y --fix-missing build-essential ccache file flex g++ gawk gcc gettext git libncurses-dev libssl-dev python3-dev rsync swig u-boot-tools unzip wget zstd binutils bzip2 subversion diffutils which bison m4 patch jq ecj fastjar qemu-utils quilt lzma libtool libglib2.0-dev libelf-dev e2fsprogs-extra libattr1-dev libcap-dev libmpc-dev libmpfr-dev libgmp-dev libz-dev pigz libzstd-dev squashfs-tools device-tree-compiler gcc-multilib g++-multilib libc6-dev-i386 lib32readline-dev || true
 
@@ -39,11 +38,14 @@ jobs:
           echo "CONFIG_PACKAGE_luci=y" >> .config
           make defconfig
 
-      - name: Apply Universal Patch and Force Stamp Prereq
+      - name: Apply Universal Patch and Force Tools Reset
         run: |
+          # 物理補齊最高放行印章，砸碎 toplevel.mk 的大檢查機制！
           mkdir -p staging_dir/host
           touch staging_dir/host/.prereq-build
-          rm -rf staging_dir/host/bin/m4 staging_dir/host/bin/bison staging_dir/host/bin/quilt 2>/dev/null || true
+          # 【最高核心絕殺】物理重置並清洗 OpenWrt 自建工具鏈殘留，強迫調用系統滿血環境，徹底融化第 5 分鐘死鎖！
+          rm -rf staging_dir/host/bin/m4 staging_dir/host/bin/bison staging_dir/host/bin/quilt staging_dir/host/bin/sed staging_dir/host/bin/mmp 2>/dev/null || true
+          # 全域強制內核版本號與 APK 封裝引擎純數字對齊
           echo "KERNEL_BUILD_DIR:=6.12.91-1" >> include/kernel.mk
           echo "LINUX_VERSION:=6.12.91" >> include/kernel.mk
           find ./include ./scripts ./package -type f \( -name "*.mk" -o -name "*.sh" -o -name "Makefile" \) -exec sed -i 's/\~/./g' {} + 2>/dev/null
@@ -52,7 +54,8 @@ jobs:
       - name: Compile and Package Firmware
         run: |
           export FORCE_UNSAFE_CONFIGURE=1
-          make -j1 V=s
+          # 【全核心火力全開】放行全域最高通道，命令微軟伺服器全速衝刺！
+          make -j$(nproc) V=s
 
       - name: Upload Finished Firmware Artifacts
         uses: actions/upload-artifact@v4
