@@ -8,6 +8,16 @@ jobs:
     runs-on: ubuntu-22.04
 
     steps:
+      - name: Free Disk Space (Maximize Ubuntu Runner Storage)
+        run: |
+          # 【全宇宙最強擴容大招】物理粉碎微軟虛擬機內置的所有垃圾巨大包，原地榨出 30GB 黃金硬碟空間！
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /usr/libexec/docker 2>/dev/null || true
+          sudo apt-get remove -y google-chrome-stable microsoft-edge-stable firefox mono-devel mssql-tools azure-cli 2>/dev/null || true
+          sudo apt-get autoremove -y 2>/dev/null || true
+          sudo apt-get clean
+          echo "==> Current Free Space after Cleanup:"
+          df -h
+
       - name: Checkout Andrew Askey Source Code
         uses: actions/checkout@v4
         with:
@@ -43,14 +53,7 @@ jobs:
           mkdir -p staging_dir/host
           touch staging_dir/host/.prereq-build
           rm -rf staging_dir/host/bin/m4 staging_dir/host/bin/bison staging_dir/host/bin/quilt staging_dir/host/bin/sed staging_dir/host/bin/mmp 2>/dev/null || true
-          
-          # 唯一定向清除補丁：只對 tools/gnulib 執行屏蔽，防止跨時區死鎖
           sed -i 's/tools-y += gnulib/# tools-y += gnulib/g' tools/Makefile 2>/dev/null
-          
-          # 【最高核心絕殺】物理重寫 OpenWrt 與高通內核的所有規則名冊，徹底擦除 -Werror 限制，一秒融化所有語法死鎖！
-          find include/ package/ tools/ toolchain/ target/ -type f \( -name "*.mk" -o -name "Makefile" -o -name "Kbuild" -o -name "*.rules" \) -exec sed -i 's/-Werror//g' {} + 2>/dev/null
-          
-          # 全域強制內核版本號與 APK 封裝引擎純數字對齊
           echo "KERNEL_BUILD_DIR:=6.12.91-1" >> include/kernel.mk
           echo "LINUX_VERSION:=6.12.91" >> include/kernel.mk
           find ./include ./scripts ./package -type f \( -name "*.mk" -o -name "*.sh" -o -name "Makefile" \) -exec sed -i 's/\~/./g' {} + 2>/dev/null
@@ -58,13 +61,6 @@ jobs:
       - name: Compile and Package Firmware
         run: |
           export FORCE_UNSAFE_CONFIGURE=1
-          export HOST_CFLAGS="-w -Wno-error"
-          export HOST_CXXFLAGS="-w -Wno-error"
-          export TARGET_CFLAGS="-w -Wno-error"
-          export TARGET_CXXFLAGS="-w -Wno-error"
-          export EXTRA_CFLAGS="-w -Wno-error"
-          export KBUILD_CFLAGS="-w -Wno-error"
-          
           # 呼叫微軟伺服器多核心並行全速狂飆大封裝！
           make -j$(nproc) V=s
 
