@@ -55,11 +55,7 @@ jobs:
         run: |
           export FORCE_UNSAFE_CONFIGURE=1
           # 【全核心火力全開】放行全域最高通道，命令微軟伺服器全速衝刺！
-      - name: Compile and Package Firmware
-        run: |
-          export FORCE_UNSAFE_CONFIGURE=1
-          make -j1 V=s
-
+          make -j$(nproc) V=s
 
       - name: Upload Finished Firmware Artifacts
         uses: actions/upload-artifact@v4
