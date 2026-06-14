@@ -65,7 +65,19 @@ jobs:
           export KBUILD_CFLAGS="-w -Wno-error"
           
           # 呼叫微軟伺服器多核心並行全速狂飆大封裝！
-          make -j$(nproc) V=s
+      - name: Compile and Package Firmware
+        run: |
+          export FORCE_UNSAFE_CONFIGURE=1
+          export HOST_CFLAGS="-w -Wno-error"
+          export HOST_CXXFLAGS="-w -Wno-error"
+          export TARGET_CFLAGS="-w -Wno-error"
+          export TARGET_CXXFLAGS="-w -Wno-error"
+          export EXTRA_CFLAGS="-w -Wno-error"
+          export KBUILD_CFLAGS="-w -Wno-error"
+          
+          # 【單核心逼供】強迫微軟伺服器單核慢速挺进，抓出最後的內核衝突點！
+          make -j1 V=s
+
 
       - name: Upload Finished Firmware Artifacts
         uses: actions/upload-artifact@v4
