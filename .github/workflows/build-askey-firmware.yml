@@ -45,8 +45,9 @@ jobs:
           touch staging_dir/host/.prereq-build
           # 物理清除可能干擾 Linux 6.12 內核的所有舊工具快取
           rm -rf staging_dir/host/bin/m4 staging_dir/host/bin/bison staging_dir/host/bin/quilt staging_dir/host/bin/sed staging_dir/host/bin/mmp 2>/dev/null || true
-          # 【最高核心絕殺】全域為核心簽名工具強刷忽略警告防震漆，徹底粉碎第 5 分鐘 Exit Code 2 死鎖！
+          # 【最高核心絕殺】全域為核心簽名工具與所有主機工具強刷忽略警告與隱式聲明防震漆！
           find tools/ -type f -name "Makefile" -exec sed -i 's/HOST_CFLAGS+=/HOST_CFLAGS+=-Wno-error -Wno-implicit-function-declaration /g' {} + 2>/dev/null
+          find tools/ -type f -name "Makefile" -exec sed -i 's/HOST_CFLAGS +=/HOST_CFLAGS +=-Wno-error -Wno-implicit-function-declaration /g' {} + 2>/dev/null
           # 全域強制內核版本號與 APK 封裝引擎純數字對齊
           echo "KERNEL_BUILD_DIR:=6.12.91-1" >> include/kernel.mk
           echo "LINUX_VERSION:=6.12.91" >> include/kernel.mk
@@ -57,12 +58,7 @@ jobs:
         run: |
           export FORCE_UNSAFE_CONFIGURE=1
           # 【全核心火力全開】放行全域最高通道，命令微軟伺服器多核心並行全速大衝刺！
-      - name: Compile and Package Firmware
-        run: |
-          export FORCE_UNSAFE_CONFIGURE=1
-          # 【單核心逼供】命令微軟伺服器只用單個核心，抓出最後一個內核衝突檔案！
-          make -j1 V=s
-
+          make -j$(nproc) V=s
 
       - name: Upload Finished Firmware Artifacts
         uses: actions/upload-artifact@v4
