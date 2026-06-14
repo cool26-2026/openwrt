@@ -23,7 +23,6 @@ jobs:
 
       - name: Install System Dependencies
         run: |
-          # 加上最全面、包含高通與 OpenWrt 主線全套打磨包的最高規格依賴，彻底砸碎 Exit Code 2 阻斷！
           sudo apt-get update --fix-missing || true
           sudo apt-get install -y --fix-missing build-essential ccache file flex g++ gawk gcc gettext git libncurses-dev libssl-dev python3-dev rsync swig u-boot-tools unzip wget zstd binutils bzip2 subversion diffutils which bison m4 patch jq ecj fastjar qemu-utils quilt lzma libtool libglib2.0-dev libelf-dev e2fsprogs-extra libattr1-dev libcap-dev libmpc-dev libmpfr-dev libgmp-dev libz-dev pigz libzstd-dev squashfs-tools device-tree-compiler || true
 
@@ -39,15 +38,21 @@ jobs:
           echo "CONFIG_PACKAGE_luci=y" >> .config
           make defconfig
 
-      - name: Apply Universal Patch
+      - name: Apply Universal Patch and Toolchain Reset
         run: |
+          # 物理清除可能干擾 Linux 6.12 內核的所有舊工具指紋，強迫調用系統滿血環境！
+          rm -rf staging_dir/host/bin/m4 staging_dir/host/bin/bison staging_dir/host/bin/quilt 2>/dev/null || true
+          # 全域強制版本號與 APK 引擎純數字對齊
+          echo "KERNEL_BUILD_DIR:=6.12.91-1" >> include/kernel.mk
+          echo "LINUX_VERSION:=6.12.91" >> include/kernel.mk
           find ./include ./scripts ./package -type f \( -name "*.mk" -o -name "*.sh" -o -name "Makefile" \) -exec sed -i 's/\~/./g' {} + 2>/dev/null
           sed -i 's/tools-y += gnulib/# tools-y += gnulib/g' tools/Makefile 2>/dev/null
 
       - name: Compile and Package Firmware
         run: |
           export FORCE_UNSAFE_CONFIGURE=1
-          make -j1 V=s
+          # 【全核心起飛】大門全開，命令微軟伺服器多核心全速衝刺！
+          make -j$(nproc) V=s
 
       - name: Upload Finished Firmware Artifacts
         uses: actions/upload-artifact@v4
