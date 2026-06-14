@@ -13,6 +13,7 @@ jobs:
         with:
           repository: 'andrewjlamarche/openwrt'
           ref: 'sbe1v1k'
+          path: '.'
 
       - name: Install System Dependencies
         run: |
