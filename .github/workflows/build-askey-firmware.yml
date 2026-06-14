@@ -89,4 +89,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: Askey_SBE1V1K_Firmware_746d79cb72
-          path: bin/targets/qualcommbe/ipq95xx/*sbe1v1k*
+          path: bin/targets/qualcommbe/ipq95xx/
+
