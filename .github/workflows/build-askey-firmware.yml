@@ -53,14 +53,11 @@ jobs:
           touch staging_dir/host/.prereq-build
           rm -rf staging_dir/host/bin/m4 staging_dir/host/bin/bison staging_dir/host/bin/quilt staging_dir/host/bin/sed staging_dir/host/bin/mmp 2>/dev/null || true
           
-          # 【全宇宙最高核心絕殺】追加大寫字母 I 參數，全域大小寫不敏感強制抹除所有 -Werror 和 -WERROR 限制！
+          # 全域大小寫不敏感強制抹除所有 -Werror 限制
           find include/ package/ tools/ toolchain/ target/ -type f \( -name "*.mk" -o -name "Makefile" -o -name "Kbuild" -o -name "Config.in" \) -exec sed -i 's/-Werror//gI' {} + 2>/dev/null
           find include/ package/ tools/ toolchain/ target/ -type f \( -name "*.mk" -o -name "Makefile" -o -name "Kbuild" -o -name "Config.in" \) -exec sed -i 's/-Werror=all//gI' {} + 2>/dev/null
           
-          # 唯一定向清除補丁：只對 tools/gnulib 執行屏蔽，防止跨時區死鎖
           sed -i 's/tools-y += gnulib/# tools-y += gnulib/g' tools/Makefile 2>/dev/null
-          
-          # 全域強制內核版本號與 APK 封裝引擎純數字對齊
           echo "KERNEL_BUILD_DIR:=6.12.91-1" >> include/kernel.mk
           echo "LINUX_VERSION:=6.12.91" >> include/kernel.mk
           find ./include ./scripts ./package -type f \( -name "*.mk" -o -name "*.sh" -o -name "Makefile" \) -exec sed -i 's/\~/./g' {} + 2>/dev/null
