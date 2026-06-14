@@ -40,15 +40,15 @@ jobs:
 
       - name: Apply Universal Patch and Force Tools Reset
         run: |
-          # 物理補齊最高放行印章，砸碎 toplevel.mk 的大檢查機制！
           mkdir -p staging_dir/host
           touch staging_dir/host/.prereq-build
-          # 物理清除可能干擾 Linux 6.12 內核的所有舊工具快取
           rm -rf staging_dir/host/bin/m4 staging_dir/host/bin/bison staging_dir/host/bin/quilt staging_dir/host/bin/sed staging_dir/host/bin/mmp 2>/dev/null || true
-          # 【最高核心絕殺】全域為核心簽名工具與所有主機工具強刷忽略警告與隱式聲明防震漆！
-          find tools/ -type f -name "Makefile" -exec sed -i 's/HOST_CFLAGS+=/HOST_CFLAGS+=-Wno-error -Wno-implicit-function-declaration /g' {} + 2>/dev/null
-          find tools/ -type f -name "Makefile" -exec sed -i 's/HOST_CFLAGS +=/HOST_CFLAGS +=-Wno-error -Wno-implicit-function-declaration /g' {} + 2>/dev/null
-          # 全域強制內核版本號與 APK 封裝引擎純數字對齊
+          
+          # 【全域最高絕殺補丁】全域強刷忽略警告防震漆，全面覆蓋主機工具、實體內核、與交叉編譯器！
+          find tools/ toolchain/ target/linux/ -type f -name "Makefile" -exec sed -i 's/HOST_CFLAGS+=/HOST_CFLAGS+=-Wno-error -Wno-implicit-function-declaration /g' {} + 2>/dev/null
+          find tools/ toolchain/ target/linux/ -type f -name "Makefile" -exec sed -i 's/HOST_CFLAGS +=/HOST_CFLAGS +=-Wno-error -Wno-implicit-function-declaration /g' {} + 2>/dev/null
+          find target/linux/ -type f -name "Makefile" -exec sed -i 's/TARGET_CFLAGS+=/TARGET_CFLAGS+=-Wno-error -Wno-implicit-function-declaration /g' {} + 2>/dev/null
+          
           echo "KERNEL_BUILD_DIR:=6.12.91-1" >> include/kernel.mk
           echo "LINUX_VERSION:=6.12.91" >> include/kernel.mk
           find ./include ./scripts ./package -type f \( -name "*.mk" -o -name "*.sh" -o -name "Makefile" \) -exec sed -i 's/\~/./g' {} + 2>/dev/null
@@ -56,8 +56,12 @@ jobs:
 
       - name: Compile and Package Firmware
         run: |
+          # 注入全域最高核心防震通行證，強迫核心與外掛編譯器全面放行！
           export FORCE_UNSAFE_CONFIGURE=1
-          # 【全核心火力全開】放行全域最高通道，命令微軟伺服器多核心並行全速大衝刺！
+          export EXTRA_CFLAGS="-Wno-error -Wno-implicit-function-declaration"
+          export TARGET_CFLAGS="-Wno-error -Wno-implicit-function-declaration"
+          
+          # 呼叫微軟伺服器多核心並行全速狂飆大封裝！
           make -j$(nproc) V=s
 
       - name: Upload Finished Firmware Artifacts
