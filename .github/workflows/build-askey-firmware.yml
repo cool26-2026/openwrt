@@ -3,18 +3,6 @@ name: Build Askey SBE1V1K Firmware
 on:
   workflow_dispatch:
 
-# 【最高核心絕殺】在全域頂層直接焊死放行鋼印，強制覆蓋高通與聯發科底層的所有 -Werror 限制！
-env:
-  FORCE_UNSAFE_CONFIGURE: 1
-  HOST_CFLAGS: "-w -Wno-error -Wno-implicit-function-declaration"
-  HOST_CXXFLAGS: "-w -Wno-error"
-  TARGET_CFLAGS: "-w -Wno-error -Wno-implicit-function-declaration"
-  TARGET_CXXFLAGS: "-w -Wno-error"
-  EXTRA_CFLAGS: "-w -Wno-error -Wno-implicit-function-declaration"
-  KBUILD_CFLAGS: "-w -Wno-error -Wno-implicit-function-declaration"
-  CFLAGS: "-w -Wno-error -Wno-implicit-function-declaration"
-  CXXFLAGS: "-w -Wno-error"
-
 jobs:
   build:
     runs-on: ubuntu-22.04
@@ -69,6 +57,9 @@ jobs:
           find include/ package/ tools/ toolchain/ target/ -type f \( -name "*.mk" -o -name "Makefile" -o -name "Kbuild" -o -name "Config.in" \) -exec sed -i 's/-Werror//gI' {} + 2>/dev/null
           find include/ package/ tools/ toolchain/ target/ -type f \( -name "*.mk" -o -name "Makefile" -o -name "Kbuild" -o -name "Config.in" \) -exec sed -i 's/-Werror=all//gI' {} + 2>/dev/null
           
+          # 【最高核心絕殺】物理重寫高通實體內核資料夾，強制抹除高通底層驅動肚子裡的所有 -Werror 限制！
+          find target/linux/qualcommbe/ -type f \( -name "*.mk" -o -name "Makefile" -o -name "Kbuild" \) -exec sed -i 's/-Werror//gI' {} + 2>/dev/null
+          
           sed -i 's/tools-y += gnulib/# tools-y += gnulib/g' tools/Makefile 2>/dev/null
           echo "KERNEL_BUILD_DIR:=6.12.91-1" >> include/kernel.mk
           echo "LINUX_VERSION:=6.12.91" >> include/kernel.mk
@@ -76,6 +67,16 @@ jobs:
 
       - name: Compile and Package Firmware
         run: |
+          export FORCE_UNSAFE_CONFIGURE=1
+          export HOST_CFLAGS="-w -Wno-error -Wno-implicit-function-declaration"
+          export HOST_CXXFLAGS="-w -Wno-error"
+          export TARGET_CFLAGS="-w -Wno-error -Wno-implicit-function-declaration"
+          export TARGET_CXXFLAGS="-w -Wno-error"
+          export EXTRA_CFLAGS="-w -Wno-error -Wno-implicit-function-declaration"
+          export KBUILD_CFLAGS="-w -Wno-error -Wno-implicit-function-declaration"
+          export CFLAGS="-w -Wno-error"
+          export CXXFLAGS="-w -Wno-error"
+          
           # 呼叫微軟伺服器多核心並行全速狂飆大封裝！
           make -j$(nproc) V=s
 
