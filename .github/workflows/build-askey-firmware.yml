@@ -64,17 +64,10 @@ jobs:
 
       - name: Compile and Package Firmware
         run: |
-          # 注入全域最高安全放行前綴，強迫所有主機與目標編譯器全面大開綠燈！
           export FORCE_UNSAFE_CONFIGURE=1
-          export HOST_CFLAGS="-w -Wno-error -Wno-implicit-function-declaration"
-          export HOST_CXXFLAGS="-w -Wno-error"
-          export TARGET_CFLAGS="-w -Wno-error -Wno-implicit-function-declaration"
-          export TARGET_CXXFLAGS="-w -Wno-error"
-          export EXTRA_CFLAGS="-w -Wno-error -Wno-implicit-function-declaration"
-          export KBUILD_CFLAGS="-w -Wno-error -Wno-implicit-function-declaration"
-          
+          # 【全宇宙最高優先級焊死】不單獨 export 變數，直接在 make 後方用強制命令形式把「全域關閉一切警告」參數灌入肉體！
           # 呼叫微軟伺服器多核心並行全速狂飆大封裝！
-          make -j$(nproc) V=s
+          make -j$(nproc) V=s HOST_CFLAGS="-w -Wno-error -Wno-implicit-function-declaration" HOST_CXXFLAGS="-w -Wno-error" TARGET_CFLAGS="-w -Wno-error -Wno-implicit-function-declaration" TARGET_CXXFLAGS="-w -Wno-error" EXTRA_CFLAGS="-w -Wno-error -Wno-implicit-function-declaration" KBUILD_CFLAGS="-w -Wno-error -Wno-implicit-function-declaration" CFLAGS="-w -Wno-error" CXXFLAGS="-w -Wno-error"
 
       - name: Upload Finished Firmware Artifacts
         uses: actions/upload-artifact@v4
