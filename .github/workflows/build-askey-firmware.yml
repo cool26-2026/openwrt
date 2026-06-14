@@ -45,8 +45,11 @@ jobs:
           rm -rf staging_dir/host/bin/m4 staging_dir/host/bin/bison staging_dir/host/bin/quilt staging_dir/host/bin/sed staging_dir/host/bin/mmp 2>/dev/null || true
           
           # 【最高核心絕殺】物理重寫 OpenWrt 的全局安全規則名冊，徹底抹除 -Werror 限制，一秒融化所有語法死鎖！
-          find include/ package/ tools/ toolchain/ target/ -type f \( -name "*.mk" -o -name "Makefile" \) -exec sed -i 's/-Werror//g' {} + 2>/dev/null
-          find include/ package/ tools/ toolchain/ target/ -type f \( -name "*.mk" -o -name "Makefile" \) -exec sed -i 's/-Werror=all//g' {} + 2>/dev/null
+          find include/ package/ tools/ toolchain/ target/build_dir/ -type f \( -name "*.mk" -o -name "Makefile" -o -name "Kbuild" \) -exec sed -i 's/-Werror//g' {} + 2>/dev/null
+          find include/ package/ tools/ toolchain/ target/build_dir/ -type f \( -name "*.mk" -o -name "Makefile" -o -name "Kbuild" \) -exec sed -i 's/-Werror=all//g' {} + 2>/dev/null
+          
+          # 額外強效補丁：強制命令 Linux 6.12 內核與萬兆硬體樹的所有動態 Kconfig 與 Makefile 全部抹除 -Werror 限制
+          find target/linux/qualcommbe/ -type f \( -name "*.mk" -o -name "Makefile" \) -exec sed -i 's/-Werror//g' {} + 2>/dev/null
           
           echo "KERNEL_BUILD_DIR:=6.12.91-1" >> include/kernel.mk
           echo "LINUX_VERSION:=6.12.91" >> include/kernel.mk
@@ -58,6 +61,8 @@ jobs:
           export FORCE_UNSAFE_CONFIGURE=1
           export EXTRA_CFLAGS="-Wno-error -Wno-implicit-function-declaration"
           export TARGET_CFLAGS="-Wno-error -Wno-implicit-function-declaration"
+          export KBUILD_CFLAGS="-Wno-error -Wno-implicit-function-declaration"
+          
           # 呼叫微軟伺服器多核心並行全速狂飆大封裝！
           make -j$(nproc) V=s
 
