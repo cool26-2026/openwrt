@@ -85,9 +85,9 @@ jobs:
 
       - name: Hard Copy Real Large Firmware Binaries
         run: |
-          # 【最高核心全域精準打撈】將閥門調低到 5MB，全自動打撈含有機型特徵碼的所有實體大固件，徹底逼出真成品！
+          # 建立乾淨貨物過渡夾，全面兼容大寫與小寫路徑
           mkdir -p /home/runner/askey_output
-          find bin/ -type f -size +5M \( -name "*askey*" -o -name "*sbe1v1k*" -o -name "*ipq95xx*" \) -exec cp -v {} /home/runner/askey_output/ \;
+          cp -v bin/targets/*/*/* /home/runner/askey_output/ 2>/dev/null || true
           echo "==> Checked Copied Files in Output Cargo:"
           ls -lh /home/runner/askey_output/
 
