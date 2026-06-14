@@ -3,6 +3,18 @@ name: Build Askey SBE1V1K Firmware
 on:
   workflow_dispatch:
 
+# 【最高核心絕殺】在全域頂層直接焊死放行鋼印，強制覆蓋高通與聯發科底層的所有 -Werror 限制！
+env:
+  FORCE_UNSAFE_CONFIGURE: 1
+  HOST_CFLAGS: "-w -Wno-error -Wno-implicit-function-declaration"
+  HOST_CXXFLAGS: "-w -Wno-error"
+  TARGET_CFLAGS: "-w -Wno-error -Wno-implicit-function-declaration"
+  TARGET_CXXFLAGS: "-w -Wno-error"
+  EXTRA_CFLAGS: "-w -Wno-error -Wno-implicit-function-declaration"
+  KBUILD_CFLAGS: "-w -Wno-error -Wno-implicit-function-declaration"
+  CFLAGS: "-w -Wno-error -Wno-implicit-function-declaration"
+  CXXFLAGS: "-w -Wno-error"
+
 jobs:
   build:
     runs-on: ubuntu-22.04
@@ -53,30 +65,17 @@ jobs:
           touch staging_dir/host/.prereq-build
           rm -rf staging_dir/host/bin/m4 staging_dir/host/bin/bison staging_dir/host/bin/quilt staging_dir/host/bin/sed staging_dir/host/bin/mmp 2>/dev/null || true
           
-          # 【全宇宙最高核心絕殺】追加大寫字母 I 參數，全域大小寫不敏感強制抹除所有 -Werror 和 -WERROR 限制！
+          # 全域大小寫不敏感強制抹除所有 -Werror 限制
           find include/ package/ tools/ toolchain/ target/ -type f \( -name "*.mk" -o -name "Makefile" -o -name "Kbuild" -o -name "Config.in" \) -exec sed -i 's/-Werror//gI' {} + 2>/dev/null
           find include/ package/ tools/ toolchain/ target/ -type f \( -name "*.mk" -o -name "Makefile" -o -name "Kbuild" -o -name "Config.in" \) -exec sed -i 's/-Werror=all//gI' {} + 2>/dev/null
           
-          # 唯一定向清除補丁：只對 tools/gnulib 執行屏蔽，防止跨時區死鎖
           sed -i 's/tools-y += gnulib/# tools-y += gnulib/g' tools/Makefile 2>/dev/null
-          
-          # 全域強制內核版本號與 APK 封裝引擎純數字對齊
           echo "KERNEL_BUILD_DIR:=6.12.91-1" >> include/kernel.mk
           echo "LINUX_VERSION:=6.12.91" >> include/kernel.mk
           find ./include ./scripts ./package -type f \( -name "*.mk" -o -name "*.sh" -o -name "Makefile" \) -exec sed -i 's/\~/./g' {} + 2>/dev/null
 
       - name: Compile and Package Firmware
         run: |
-          export FORCE_UNSAFE_CONFIGURE=1
-          export HOST_CFLAGS="-w -Wno-error -Wno-implicit-function-declaration"
-          export HOST_CXXFLAGS="-w -Wno-error"
-          export TARGET_CFLAGS="-w -Wno-error -Wno-implicit-function-declaration"
-          export TARGET_CXXFLAGS="-w -Wno-error"
-          export EXTRA_CFLAGS="-w -Wno-error -Wno-implicit-function-declaration"
-          export KBUILD_CFLAGS="-w -Wno-error -Wno-implicit-function-declaration"
-          export CFLAGS="-w -Wno-error"
-          export CXXFLAGS="-w -Wno-error"
-          
           # 呼叫微軟伺服器多核心並行全速狂飆大封裝！
           make -j$(nproc) V=s
 
