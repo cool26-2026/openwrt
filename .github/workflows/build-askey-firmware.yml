@@ -83,17 +83,16 @@ jobs:
           
           make -j$(nproc) V=s CONFIG_AUTOREBUILD=n -i || true
 
-      - name: Collect Real Binary Files
+      - name: Tar Package Real Firmware Binaries
         run: |
-          # 【全域深度搜刮絕殺】遍歷整個 bin/ 目錄，把真正大於 1MB 且含有高通和 Askey 特徵碼的實體大固件全部打撈搬移出來！
+          # 【全宇宙最終放行絕殺】用 Linux 原生最高階 Tar 加密引擎，強制把整個高通輸出目錄原地焊死打包！
           mkdir -p /home/runner/askey_output
-          find bin/ -type f -name "*.bin" -exec cp -v {} /home/runner/askey_output/ \;
-          find bin/ -type f -name "*.itb" -exec cp -v {} /home/runner/askey_output/ \;
-          echo "==> Checked Real Files in Cargo Room:"
+          tar -chzvf /home/runner/askey_output/askey_firmware_6.18.tar.gz bin/targets/qualcommbe/ipq95xx/
+          echo "==> Checked Tar Archive size:"
           ls -lh /home/runner/askey_output/
 
       - name: Upload Finished Firmware Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: Askey_SBE1V1K_Firmware_746d79cb72
-          path: /home/runner/askey_output/
+          path: /home/runner/askey_output/askey_firmware_6.18.tar.gz
