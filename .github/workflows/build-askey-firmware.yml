@@ -52,7 +52,7 @@ jobs:
       - name: Compile and Package Firmware
         run: |
           export FORCE_UNSAFE_CONFIGURE=1
-          make -j$(nproc) V=s
+          make -j1 V=s
 
       - name: Upload Finished Firmware Artifacts
         uses: actions/upload-artifact@v4
