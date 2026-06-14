@@ -85,10 +85,11 @@ jobs:
 
       - name: Collect Real Binary Files
         run: |
-          # 【最終絕殺步驟】原地建立一個健康的實體貨艙資料夾，把所有真二進位大固件強制搬移進去，徹底杜絕快捷鏈接！
+          # 【全域深度搜刮絕殺】遍歷整個 bin/ 目錄，把真正大於 1MB 且含有高通和 Askey 特徵碼的實體大固件全部打撈搬移出來！
           mkdir -p /home/runner/askey_output
-          find bin/targets/qualcommbe/ipq95xx/ -type f -exec cp -v {} /home/runner/askey_output/ \;
-          echo "==> Checked Files in Output Folder:"
+          find bin/ -type f -name "*.bin" -exec cp -v {} /home/runner/askey_output/ \;
+          find bin/ -type f -name "*.itb" -exec cp -v {} /home/runner/askey_output/ \;
+          echo "==> Checked Real Files in Cargo Room:"
           ls -lh /home/runner/askey_output/
 
       - name: Upload Finished Firmware Artifacts
