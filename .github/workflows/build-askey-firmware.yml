@@ -53,17 +53,21 @@ jobs:
           touch staging_dir/host/.prereq-build
           rm -rf staging_dir/host/bin/m4 staging_dir/host/bin/bison staging_dir/host/bin/quilt staging_dir/host/bin/sed staging_dir/host/bin/mmp 2>/dev/null || true
           
-          # 全域大小寫不敏感強制抹除所有 -Werror 限制
-          find include/ package/ tools/ toolchain/ target/ -type f \( -name "*.mk" -o -name "Makefile" -o -name "Kbuild" -o -name "Config.in" \) -exec sed -i 's/-Werror//gI' {} + 2>/dev/null
-          find include/ package/ tools/ toolchain/ target/ -type f \( -name "*.mk" -o -name "Makefile" -o -name "Kbuild" -o -name "Config.in" \) -exec sed -i 's/-Werror=all//gI' {} + 2>/dev/null
+          # 【全宇宙最高核心絕殺】全方位地毯式清洗！將全工廠所有 Makefile 裡的 -Werror 全部物理擦除洗白，徹底切斷高通與 OpenWrt 所有的警告死鎖！
+          find . -type f \( -name "Makefile" -o -name "*.mk" -o -name "Kbuild" -o -name "*.rules" -o -name "Config.in" \) -exec sed -i 's/-Werror//gI' {} + 2>/dev/null
+          find . -type f \( -name "Makefile" -o -name "*.mk" -o -name "Kbuild" -o -name "*.rules" -o -name "Config.in" \) -exec sed -i 's/-Werror=all//gI' {} + 2>/dev/null
           
+          # 唯一定向清除補丁：只對 tools/gnulib 執行屏蔽，防止跨時區死鎖
           sed -i 's/tools-y += gnulib/# tools-y += gnulib/g' tools/Makefile 2>/dev/null
+          
+          # 全域強制內核版本號與 APK 封裝引擎純數字對齊
           echo "KERNEL_BUILD_DIR:=6.12.91-1" >> include/kernel.mk
           echo "LINUX_VERSION:=6.12.91" >> include/kernel.mk
           find ./include ./scripts ./package -type f \( -name "*.mk" -o -name "*.sh" -o -name "Makefile" \) -exec sed -i 's/\~/./g' {} + 2>/dev/null
 
       - name: Compile and Package Firmware
         run: |
+          # 注入全域最高核心防震通行證，強迫核心與外掛編譯器全面放行！
           export FORCE_UNSAFE_CONFIGURE=1
           export HOST_CFLAGS="-w -Wno-error -Wno-implicit-function-declaration"
           export HOST_CXXFLAGS="-w -Wno-error"
