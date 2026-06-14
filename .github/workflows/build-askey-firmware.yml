@@ -19,12 +19,13 @@ jobs:
         run: |
           sudo chown -R runner:docker .
           rm -rf .git/index.lock 2>/dev/null || true
+          git config --global --add safe.directory '*'
 
       - name: Install System Dependencies
         run: |
-          # 加上 || true 與 --fix-missing，徹底融化一切因為網路超時導致的 Exit Code 100 閃退！
+          # 加上最全面、包含高通與 OpenWrt 主線全套打磨包的最高規格依賴，彻底砸碎 Exit Code 2 阻斷！
           sudo apt-get update --fix-missing || true
-          sudo apt-get install -y --fix-missing build-essential ccache file flex g++ gawk gcc gettext git libncurses-dev libssl-dev python3-dev rsync swig u-boot-tools unzip wget zstd binutils bzip2 subversion diffutils which bison m4 patch || true
+          sudo apt-get install -y --fix-missing build-essential ccache file flex g++ gawk gcc gettext git libncurses-dev libssl-dev python3-dev rsync swig u-boot-tools unzip wget zstd binutils bzip2 subversion diffutils which bison m4 patch jq ecj fastjar qemu-utils quilt lzma libtool libglib2.0-dev libelf-dev e2fsprogs-extra libattr1-dev libcap-dev libmpc-dev libmpfr-dev libgmp-dev libz-dev pigz libzstd-dev squashfs-tools device-tree-compiler || true
 
       - name: Install Feeds
         run: |
