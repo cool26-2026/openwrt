@@ -1,0 +1,48 @@
+name: Build Askey SBE1V1K Firmware
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+        with:
+          ref: sbe1v1k
+          path: '.'
+
+      - name: Install System Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential ccache file flex g++ gawk gcc gettext git libncurses-dev libssl-dev python3-dev rsync swig u-boot-tools unzip wget zstd binutils bzip2 subversion diffutils which bison m4 patch
+
+      - name: Install Feeds
+        run: |
+          ./scripts/feeds install -a
+
+      - name: Configure Askey Profile
+        run: |
+          echo "CONFIG_TARGET_qualcommbe=y" > .config
+          echo "CONFIG_TARGET_qualcommbe_ipq95xx=y" >> .config
+          echo "CONFIG_TARGET_qualcommbe_ipq95xx_DEVICE_askey_sbe1v1k=y" >> .config
+          echo "CONFIG_PACKAGE_luci=y" >> .config
+          make defconfig
+
+      - name: Apply Universal Patch
+        run: |
+          find ./include ./scripts ./package -type f \( -name "*.mk" -o -name "*.sh" -o -name "Makefile" \) -exec sed -i 's/\~/./g' {} + 2>/dev/null
+          sed -i 's/tools-y += gnulib/# tools-y += gnulib/g' tools/Makefile 2>/dev/null
+
+      - name: Compile and Package Firmware
+        run: |
+          export FORCE_UNSAFE_CONFIGURE=1
+          make -j$(nproc) V=s
+
+      - name: Upload Finished Firmware Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: Askey_SBE1V1K_Firmware_746d79cb72
+          path: bin/targets/qualcommbe/ipq95xx/*sbe1v1k*
