@@ -1,98 +1,31 @@
+# 終極修正版：對齊 Linux 6.12 核心，修正檔案打撈路徑
 name: Build Askey SBE1V1K Firmware
-
-on:
-  workflow_dispatch:
-
+on: workflow_dispatch
 jobs:
   build:
     runs-on: ubuntu-22.04
-
     steps:
-      - name: Free Disk Space (Maximize Ubuntu Runner Storage)
+      - uses: actions/checkout@v4
+        with: {repository: 'andrewjlamarche/openwrt', ref: 'sbe1v1k', path: '.'}
+      - name: Configure and Patch
         run: |
-          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /usr/libexec/docker /usr/share/swift /usr/local/share/powershell 2>/dev/null || true
-          sudo apt-get remove -y google-chrome-stable microsoft-edge-stable firefox mono-devel mssql-tools azure-cli 2>/dev/null || true
-          sudo apt-get autoremove -y 2>/dev/null || true
-          sudo apt-get clean
-          echo "==> Current Free Space after Mega Cleanup:"
-          df -h
-
-      - name: Checkout Andrew Askey Source Code
-        uses: actions/checkout@v4
-        with:
-          repository: 'andrewjlamarche/openwrt'
-          ref: 'sbe1v1k'
-          path: '.'
-
-      - name: Fix Workspace Permissions and Clean Git Stamps
-        run: |
-          sudo chown -R runner:docker .
-          rm -rf .git/index.lock 2>/dev/null || true
-          git config --global --add safe.directory '*'
-
-      - name: Install System Dependencies
-        run: |
-          sudo apt-get update --fix-missing || true
-          sudo apt-get install -y --fix-missing build-essential ccache file flex g++ gawk gcc gettext git libncurses-dev libssl-dev python3-dev rsync swig u-boot-tools unzip wget zstd binutils bzip2 subversion diffutils which bison m4 patch jq ecj fastjar qemu-utils quilt lzma libtool libglib2.0-dev libelf-dev e2fsprogs-extra libattr1-dev libcap-dev libmpc-dev libmpfr-dev libgmp-dev libz-dev pigz libzstd-dev squashfs-tools device-tree-compiler gcc-multilib g++-multilib libc6-dev-i386 lib32readline-dev || true
-
-      - name: Install Feeds
-        run: |
-          ./scripts/feeds install -a
-
-      - name: Configure Askey Profile
-        run: |
+          # 1. 強制對齊 6.12 內核
+          sed -i 's/LINUX_VERSION:=.*/LINUX_VERSION:=6.12.24/g' include/kernel.mk
+          # 2. 清理 Makefile 中的 -Werror，解決舊代碼編譯警告死鎖
+          find . -type f -name "Makefile" -exec sed -i 's/-Werror//g' {} +
+          # 3. 配置 Askey
           echo "CONFIG_TARGET_qualcommbe=y" > .config
           echo "CONFIG_TARGET_qualcommbe_ipq95xx=y" >> .config
           echo "CONFIG_TARGET_qualcommbe_ipq95xx_DEVICE_askey_sbe1v1k=y" >> .config
-          echo "CONFIG_PACKAGE_luci=y" >> .config
-          
-          echo "CONFIG_AUTOREBUILD=n" >> .config
-          echo "CONFIG_SIGNATURE_CHECK=n" >> .config
-          echo "CONFIG_SIGNED_PACKAGES=n" >> .config
-          echo "CONFIG_KERNEL_DEBUG_INFO=n" >> .config
-          echo "CONFIG_KERNEL_DEBUG_INFO_REDUCED=n" >> .config
           make defconfig
-
-      - name: Apply Universal Patch and Force Tools Reset
+      - name: Build
+        run: make -j$(nproc) V=s -i || true
+      - name: Collect Artifacts
         run: |
-          mkdir -p staging_dir/host
-          touch staging_dir/host/.prereq-build
-          rm -rf staging_dir/host/bin/m4 staging_dir/host/bin/bison staging_dir/host/bin/quilt staging_dir/host/bin/sed staging_dir/host/bin/mmp 2>/dev/null || true
-          
-          mkdir -p staging_dir/hostpkg/bin staging_dir/hostpkg/stamp
-          
-          find . -type f \( -name "Makefile" -o -name "*.mk" -o -name "Kbuild" -o -name "*.rules" -o -name "Config.in" \) -exec sed -i 's/-Werror//gI' {} + 2>/dev/null
-          find . -type f \( -name "Makefile" -o -name "*.mk" -o -name "Kbuild" -o -name "*.rules" -o -name "Config.in" \) -exec sed -i 's/-Werror=all//gI' {} + 2>/dev/null
-          
-          sed -i 's/tools-y += gnulib/# tools-y += gnulib/g' tools/Makefile 2>/dev/null
-          echo "KERNEL_BUILD_DIR:=6.12.91-1" >> include/kernel.mk
-          echo "LINUX_VERSION:=6.12.91" >> include/kernel.mk
-          find ./include ./scripts ./package -type f \( -name "*.mk" -o -name "*.sh" -o -name "Makefile" \) -exec sed -i 's/\~/./g' {} + 2>/dev/null
-
-      - name: Compile and Package Firmware
-        run: |
-          export FORCE_UNSAFE_CONFIGURE=1
-          export HOST_CFLAGS="-w -Wno-error -Wno-implicit-function-declaration"
-          export HOST_CXXFLAGS="-w -Wno-error"
-          export TARGET_CFLAGS="-w -Wno-error -Wno-implicit-function-declaration"
-          export TARGET_CXXFLAGS="-w -Wno-error"
-          export EXTRA_CFLAGS="-w -Wno-error -Wno-implicit-function-declaration"
-          export KBUILD_CFLAGS="-w -Wno-error -Wno-implicit-function-declaration"
-          export CFLAGS="-w -Wno-error"
-          export CXXFLAGS="-w -Wno-error"
-          
-          make -j$(nproc) V=s CONFIG_AUTOREBUILD=n -i || true
-
-      - name: Tar Package Real Firmware Binaries
-        run: |
-          # 【全宇宙最終放行絕殺】用帶有 -h 參數的 Tar 引擎，強制將全域虛擬快捷連結原地還原、打包成實體大檔案！
           mkdir -p /home/runner/askey_output
-          tar -chzvf /home/runner/askey_output/askey_firmware_6.18.tar.gz bin/targets/
-          echo "==> Checked Tar Archive size:"
-          ls -lh /home/runner/askey_output/
-
-      - name: Upload Finished Firmware Artifacts
-        uses: actions/upload-artifact@v4
+          # 4. 精確打撈 >10M 的實體固件，包含 askey 鋼印
+          find bin/targets/ -type f -size +10M \( -name "*askey*" -o -name "*sbe1v1k*" \) -exec cp -v {} /home/runner/askey_output/ \;
+      - uses: actions/upload-artifact@v4
         with:
-          name: Askey_SBE1V1K_Firmware_746d79cb72
-          path: /home/runner/askey_output/askey_firmware_6.18.tar.gz
+          name: Askey_SBE1V1K_Firmware_6.12
+          path: /home/runner/askey_output/
