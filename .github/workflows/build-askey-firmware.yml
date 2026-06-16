@@ -15,7 +15,7 @@ jobs:
           sudo apt-get autoremove -y 2>/dev/null || true
           sudo apt-get clean
           echo "==> Current Free Space after Mega Cleanup:"
-          df h
+          df -h
 
       - name: Checkout Andrew Askey Source Code
         uses: actions/checkout@v4
@@ -41,7 +41,7 @@ jobs:
 
       - name: Configure Askey Profile
         run: |
-          # 【原廠型號 100% 精確相認】對齊您序列埠日誌吐出的 rtq7300t 皇家鋼印！
+          # 【100% 精確對齊原廠官方機型鋼印名冊】
           echo "CONFIG_TARGET_qualcommbe=y" > .config
           echo "CONFIG_TARGET_qualcommbe_ipq95xx=y" >> .config
           echo "CONFIG_TARGET_qualcommbe_ipq95xx_DEVICE_askey_rtq7300t=y" >> .config
@@ -65,7 +65,7 @@ jobs:
           find . -type f \( -name "Makefile" -o -name "*.mk" -o -name "Kbuild" -o -name "*.rules" -o -name "Config.in" \) -exec sed -i 's/-Werror//gI' {} + 2>/dev/null
           find . -type f \( -name "Makefile" -o -name "*.mk" -o -name "Kbuild" -o -name "*.rules" -o -name "Config.in" \) -exec sed -i 's/-Werror=all//gI' {} + 2>/dev/null
           
-          # 【對齊原廠 5.4 核心】強制將內核版本號鎖定在最溫定的 5.4.213 陣地上！
+          # 【對齊原廠 5.4 內核生死線】
           echo "KERNEL_BUILD_DIR:=5.4.213-1" >> include/kernel.mk
           echo "LINUX_VERSION:=5.4.213" >> include/kernel.mk
           
@@ -88,7 +88,7 @@ jobs:
 
       - name: Hard Copy Real Large Firmware Binaries
         run: |
-          # 【全宇宙最高核心全域抄底絕殺】不再限制任何資料夾，只要是體積大於 5MB 的實體 .itb 或者是 .bin 檔案，通通給我暴力複製出來！
+          # 【全宇宙最高核心全域抄底絕殺】強制把所有大於 5MB 的實體內核刷機包全部毫無遺漏地抄底複製出來！
           mkdir -p /home/runner/askey_output
           find . -type f -size +5M \( -name "*.itb" -o -name "*.bin" -o -name "*.img" \) -exec cp -v {} /home/runner/askey_output/ \;
           echo "==> Checked Copied Files in Output Cargo:"
@@ -97,5 +97,5 @@ jobs:
       - name: Upload Finished Firmware Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: Askey_RTQ7300T_Firmware_Genuine
+          name: Askey_RTQ7300T_Genuine_Firmware
           path: /home/runner/askey_output/
