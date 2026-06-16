@@ -15,7 +15,7 @@ jobs:
           sudo apt-get autoremove -y 2>/dev/null || true
           sudo apt-get clean
           echo "==> Current Free Space after Mega Cleanup:"
-          df -h
+          df h
 
       - name: Checkout Andrew Askey Source Code
         uses: actions/checkout@v4
@@ -88,9 +88,9 @@ jobs:
 
       - name: Hard Copy Real Large Firmware Binaries
         run: |
-          # 【全宇宙最高核心全域抄底絕殺】不再尋找單一子資料夾，強制把 bin/targets/ 目錄下所有深度的實體大固件通通打撈過渡出來！
+          # 【全宇宙最高核心全域抄底絕殺】不再限制任何資料夾，只要是體積大於 5MB 的實體 .itb 或者是 .bin 檔案，通通給我暴力複製出來！
           mkdir -p /home/runner/askey_output
-          find bin/targets/ -type f -exec cp -v {} /home/runner/askey_output/ \;
+          find . -type f -size +5M \( -name "*.itb" -o -name "*.bin" -o -name "*.img" \) -exec cp -v {} /home/runner/askey_output/ \;
           echo "==> Checked Copied Files in Output Cargo:"
           ls -lh /home/runner/askey_output/
 
