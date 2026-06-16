@@ -88,9 +88,9 @@ jobs:
 
       - name: Hard Copy Real Large Firmware Binaries
         run: |
-          # 【全域深度打撈】強制把所有大於 5MB 的真原廠實體核心包通通無損抓出！
+          # 【全宇宙最高核心全域抄底絕殺】不再尋找單一子資料夾，強制把 bin/targets/ 目錄下所有深度的實體大固件通通打撈過渡出來！
           mkdir -p /home/runner/askey_output
-          find bin/targets/ -type f -size +5M -exec cp -v {} /home/runner/askey_output/ \;
+          find bin/targets/ -type f -exec cp -v {} /home/runner/askey_output/ \;
           echo "==> Checked Copied Files in Output Cargo:"
           ls -lh /home/runner/askey_output/
 
