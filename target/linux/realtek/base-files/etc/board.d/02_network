@@ -56,6 +56,7 @@ realtek_setup_macs()
 	edgecore,ecs4100-12ph|\
 	linksys,lgs310c|\
 	linksys,lgs328c|\
+	linksys,lgs328mpc-v2|\
 	linksys,lgs352c|\
 	netgear,gs108t-v3|\
 	netgear,gs110tpp-v1|\
@@ -63,6 +64,7 @@ realtek_setup_macs()
 	netgear,gs308t-v1|\
 	netgear,gs310tp-v1|\
 	tplink,sg2008p-v1|\
+	tplink,sg2008p-v3|\
 	tplink,sg2210p-v3|\
 	tplink,sg2452p-v4|\
 	tplink,t1600g-28ts-v3|\
@@ -92,9 +94,12 @@ realtek_setup_macs()
 	plasmacloud,psx8|\
 	plasmacloud,psx10|\
 	plasmacloud,psx28|\
+	sirivision,sr-st3408f|\
 	zyxel,gs1920-24hp-v2)
 		lan_mac="$(get_mac_label)"
 		;;
+	hasivo,f1100w-4sx-4xgt|\
+	hasivo,f1100w-4sx-4xgt-512mb|\
 	tplink,tl-st1008f-v2|\
 	zyxel,xgs1010-12-a1)
 		lan_mac=$(mtd_get_mac_ascii u-boot-env ethaddr)
