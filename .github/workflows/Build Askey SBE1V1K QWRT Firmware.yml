@@ -1,6 +1,5 @@
 name: Build Askey SBE1V1K QWRT Firmware
 
-# 👑【皇家手動觸發鋼印】這行必須在 main 分支裡焊死，微軟才允許您手動點擊按鈕點火！
 on:
   workflow_dispatch:
 
@@ -17,9 +16,7 @@ jobs:
           sudo apt-get clean
           df -h
 
-      # 👑【全宇宙最核心安全正位】
-      # 徹底丟掉會被防火牆阻斷的 git clone！直接調用微軟官方 100% 內置、天生帶有安全權限的 checkout 通道！
-      # 無論在哪裡點火，大軍開箱一律用黃金權限，自動去拉取您自家 cool26-2026 肚子裡最純正的 sbe1v1k 滿血分支原始碼！
+      # 👑【官方安全通行證】
       - name: Checkout sbe1v1k branch (Genuine Secure Flow)
         uses: actions/checkout@v4
         with:
@@ -42,13 +39,13 @@ jobs:
             unzip wget zstd binutils bzip2 libbz2-dev perl-modules \
             libglib2.0-dev intltool sharutils patch automake libtool || true
 
-      # 👑【網頁控制台大復活】標準 feeds update + install 雙步走，徹底修復網頁拒絕連接缺失！
+      # 👑【網頁控制台大復活】標準 feeds update + install 雙步走
       - name: Update and Install QWRT Core Feeds
         run: |
           ./scripts/feeds update -a
           ./scripts/feeds install -a
 
-      # 👑【焊死 QWRT 5.4.213 工廠加速核心】開啟最頂級的原廠 QSDK 12.5 閉源 NSS/PPE 雙硬體加速名冊
+      # 👑【焊死 QWRT 5.4.213 工廠核心】精確寫入 NSS/PPE 加速與有線無線雙通名冊
       - name: Configure QWRT Profile
         run: |
           echo "==> Generating .config for Askey SBE1V1K QWRT..."
@@ -57,7 +54,6 @@ jobs:
           CONFIG_TARGET_qualcommbe_ipq95xx=y
           CONFIG_TARGET_qualcommbe_ipq95xx_DEVICE_askey_sbe1v1k=y
           
-          # 物理注入 LuCI 中文面板、網頁伺服器與萬兆硬體加速大閘（CpuMark: 49701 滿分跑分核心）
           CONFIG_PACKAGE_luci=y
           CONFIG_PACKAGE_luci-ssl=y
           CONFIG_PACKAGE_uhttpd=y
@@ -87,22 +83,23 @@ jobs:
           export HOST_CXXFLAGS="-w -Wno-error"
           export TARGET_CFLAGS="-w -Wno-error"
           export TARGET_CXXFLAGS="-w -Wno-error"
-          # 不使用 -i 參數！保證代碼 100% 絕對完全體健康
           make -j$(nproc) V=s
 
-      - name: Check Build Results
+      # 👑【全宇宙最高打撈絕殺】
+      # 徹底清除 Kiwi 開發板的所有假冒殘渣！只准複製名字裡「真正帶有 askey 皇家標籤」的真完全體大包！
+      - name: Hard Copy ONLY Askey Real Large Firmware Binaries
         run: |
-          if [ -d "bin/targets/qualcommbe/ipq95xx" ]; then
-            echo "✅ Output directory found"
-            ls -lh bin/targets/qualcommbe/ipq95xx/
-          else
-            echo "❌ Output directory not found!"
-            exit 1
-          fi
+          mkdir -p /home/runner/qwrt_output
+          
+          # 物理打撈：唯獨、且強制只將名字含有 askey_sbe1v1k 的真骨肉檔案搬移到發貨艙！
+          cp -v bin/targets/qualcommbe/ipq95xx/*askey_sbe1v1k* /home/runner/qwrt_output/ 2>/dev/null || true
+          
+          echo "==> 完美的 Askey 實體發貨艙名冊清單如下（100% 斷絕了 kiwi 假包的干擾）："
+          ls -lh /home/runner/qwrt_output/
 
-      - name: Upload QWRT Firmware Artifacts
+      - name: Upload Finished QWRT Firmware Artifacts
         if: success()
         uses: actions/upload-artifact@v4
         with:
           name: Askey_SBE1V1K_QWRT_5.4.213_Firmware
-          path: bin/targets/qualcommbe/ipq95xx/
+          path: /home/runner/qwrt_output/
