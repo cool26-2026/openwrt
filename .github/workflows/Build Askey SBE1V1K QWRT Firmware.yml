@@ -27,7 +27,7 @@ jobs:
       - name: Configure Git
         run: |
           git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@://github.com"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git config --global --add safe.directory '*'
 
       - name: Install System Dependencies
@@ -85,16 +85,17 @@ jobs:
           export TARGET_CXXFLAGS="-w -Wno-error"
           make -j$(nproc) V=s
 
-      # 👑【全宇宙最高打撈絕殺】
-      # 徹底清除 Kiwi 開發板的所有假冒殘渣！只准複製名字裡「真正帶有 askey 皇家標籤」的真完全體大包！
+      # 👑【全宇宙最高打撈對齊絕殺】
+      # 修正高通 QSDK 12.5 的實體發貨艙路徑！
       - name: Hard Copy ONLY Askey Real Large Firmware Binaries
         run: |
           mkdir -p /home/runner/qwrt_output
           
-          # 物理打撈：唯獨、且強制只將名字含有 askey_sbe1v1k 的真骨肉檔案搬移到發貨艙！
+          # 物理打撈：精確對齊 QSDK 5.4.213 的物理生成路徑 bin/targets/ipq95xx/generic/ ！
+          cp -v bin/targets/ipq95xx/generic/*askey_sbe1v1k* /home/runner/qwrt_output/ 2>/dev/null || true
           cp -v bin/targets/qualcommbe/ipq95xx/*askey_sbe1v1k* /home/runner/qwrt_output/ 2>/dev/null || true
           
-          echo "==> 完美的 Askey 實體發貨艙名冊清單如下（100% 斷絕了 kiwi 假包的干擾）："
+          echo "==> 完美的 Askey 實體發貨艙名冊清單如下："
           ls -lh /home/runner/qwrt_output/
 
       - name: Upload Finished QWRT Firmware Artifacts
