@@ -19,7 +19,7 @@ jobs:
       - name: Clean Clone Andrew QSDK Genuine Source Code
         run: |
           mkdir -p /home/runner/qsdk_build
-          # 💎【核心正位】無論在哪裡點火，大軍開箱一律去拉取支援 5.4.213 的 sbe1v1k 滿血工廠分支！
+          # 👑【全宇宙最核心正位】徹底告別外部阻斷，直接命令伺服器滿速抓取您自己 cool26-2026 肚子裡的滿血 sbe1v1k 分支！
           git clone -b sbe1v1k https://github.com /home/runner/qsdk_build
 
       - name: Install System Dependencies
