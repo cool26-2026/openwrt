@@ -1,0 +1,134 @@
+name: Sync Upstream & Build Askey SBE1V1K
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 2 * * 0'  # 每周日 UTC 2:00 自动运行
+
+concurrency:
+  group: build-sbe1v1k
+  cancel-in-progress: false
+
+jobs:
+  sync-and-build:
+    name: Sync & Build SBE1V1K Firmware
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+      
+    steps:
+      - name: Free Disk Space
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /usr/libexec/docker /usr/share/swift /usr/local/share/powershell 2>/dev/null || true
+          sudo apt-get remove -y google-chrome-stable microsoft-edge-stable firefox mono-devel mssql-tools azure-cli 2>/dev/null || true
+          sudo apt-get autoremove -y 2>/dev/null || true
+          sudo apt-get clean
+          df -h
+
+      - name: Checkout sbe1v1k branch
+        uses: actions/checkout@v4
+        with:
+          ref: sbe1v1k
+          fetch-depth: 0
+
+      - name: Configure Git
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global --add safe.directory '*'
+
+      - name: Sync upstream
+        run: |
+          git remote add upstream https://github.com/openwrt/openwrt.git || true
+          git fetch upstream main
+          git merge --no-edit upstream/main || true
+        continue-on-error: true
+
+      - name: Install System Dependencies
+        run: |
+          sudo apt-get update --fix-missing
+          sudo apt-get install -y --fix-missing \
+            build-essential ccache file flex g++ gawk gcc gettext git \
+            libncurses-dev libssl-dev python3-dev rsync swig u-boot-tools \
+            unzip wget zstd binutils bzip2 libbz2-dev perl-modules \
+            libglib2.0-dev intltool sharutils patch automake libtool
+
+      - name: Update feeds
+        run: |
+          ./scripts/feeds update -a
+          ./scripts/feeds install -a
+
+      - name: Configure Askey SBE1V1K Profile
+        run: |
+          cat > .config << 'EOF'
+          CONFIG_TARGET_qualcommbe=y
+          CONFIG_TARGET_qualcommbe_ipq95xx=y
+          CONFIG_TARGET_qualcommbe_ipq95xx_DEVICE_askey_sbe1v1k=y
+          CONFIG_PACKAGE_luci=y
+          CONFIG_AUTOREBUILD=n
+          CONFIG_SIGNATURE_CHECK=n
+          CONFIG_SIGNED_PACKAGES=n
+          CONFIG_KERNEL_DEBUG_INFO=n
+          CONFIG_KERNEL_DEBUG_INFO_REDUCED=n
+          EOF
+          
+          make defconfig
+
+      - name: Download packages
+        run: |
+          make download -j$(nproc) V=s
+        continue-on-error: true
+
+      - name: Build firmware
+        run: |
+          export FORCE_UNSAFE_CONFIGURE=1
+          export HOST_CFLAGS="-w -Wno-error"
+          export HOST_CXXFLAGS="-w -Wno-error"
+          export TARGET_CFLAGS="-w -Wno-error"
+          export TARGET_CXXFLAGS="-w -Wno-error"
+          
+          make -j$(nproc) V=s 2>&1 | tee build.log
+        timeout-minutes: 480
+
+      - name: Check build result
+        run: |
+          if [ -d "bin/targets/qualcommbe/ipq95xx" ]; then
+            echo "✅ Build successful!"
+            ls -lh bin/targets/qualcommbe/ipq95xx/
+          else
+            echo "❌ Build failed!"
+            tail -100 build.log || true
+            exit 1
+          fi
+
+      - name: Upload firmware artifacts
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: askey-sbe1v1k-firmware-${{ github.run_id }}
+          path: bin/targets/qualcommbe/ipq95xx/
+          retention-days: 30
+
+      - name: Create release
+        if: success()
+        uses: softprops/action-gh-release@v1
+        with:
+          files: bin/targets/qualcommbe/ipq95xx/openwrt-*
+          tag_name: sbe1v1k-${{ github.run_id }}-${{ github.run_number }}
+          body: |
+            Askey SBE1V1K Firmware Build
+            Branch: sbe1v1k
+            Commit: ${{ github.sha }}
+            Build Time: ${{ github.event.head_commit.timestamp }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: true
+
+      - name: Push sync changes
+        run: |
+          if [[ -n $(git status -s) ]]; then
+            git add -A
+            git commit -m "Auto sync with upstream main" || true
+            git push origin sbe1v1k
+          fi
+        continue-on-error: true
