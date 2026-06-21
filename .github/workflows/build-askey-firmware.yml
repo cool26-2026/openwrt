@@ -29,14 +29,6 @@ jobs:
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git config --global --add safe.directory '*'
 
-      - name: Sync upstream main branch
-        run: |
-          git remote add upstream https://github.com/openwrt/openwrt.git || true
-          git fetch upstream main
-          echo "==> Merging upstream/main..."
-          git merge --no-edit upstream/main || git merge --abort
-        continue-on-error: true
-
       - name: Install System Dependencies
         run: |
           sudo apt-get update --fix-missing || true
