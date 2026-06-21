@@ -17,79 +17,161 @@ jobs:
           echo "==> Current Free Space after Mega Cleanup:"
           df -h
 
-      - name: Force Clean Checkout Andrew Genuine Branch
+      - name: Checkout sbe1v1k branch
+        uses: actions/checkout@v4
+        with:
+          ref: sbe1v1k
+          fetch-depth: 0
+
+      - name: Configure Git
         run: |
-          # 【最高核心絕殺】物理清除當前所有被 main 合併污染的殘留，從零拉取 Andrew 最純淨的 sbe1v1k 核心！
-          rm -rf * .git
-          git clone -b sbe1v1k https://github.com .
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git config --global --add safe.directory '*'
+
+      - name: Sync upstream main branch
+        run: |
+          git remote add upstream https://github.com/openwrt/openwrt.git || true
+          git fetch upstream main
+          echo "==> Merging upstream/main..."
+          git merge --no-edit upstream/main || git merge --abort
+        continue-on-error: true
 
       - name: Install System Dependencies
         run: |
           sudo apt-get update --fix-missing || true
-          sudo apt-get install -y --fix-missing build-essential ccache file flex g++ gawk gcc gettext git libncurses-dev libssl-dev python3-dev rsync swig u-boot-tools unzip wget zstd binutils bzip2 subversion diffutils which bison m4 patch jq ecj fastjar qemu-utils quilt lzma libtool libglib2.0-dev libelf-dev e2fsprogs-extra libattr1-dev libcap-dev libmpc-dev libmpfr-dev libgmp-dev libz-dev pigz libzstd-dev squashfs-tools device-tree-compiler gcc-multilib g++-multilib libc6-dev-i386 lib32readline-dev || true
+          sudo apt-get install -y --fix-missing \
+            build-essential ccache file flex g++ gawk gcc gettext git \
+            libncurses-dev libssl-dev python3-dev rsync swig u-boot-tools \
+            unzip wget zstd binutils bzip2 libbz2-dev perl-modules \
+            libglib2.0-dev intltool sharutils patch automake libtool
 
-      - name: Install Feeds
+      - name: Update and Install Feeds
         run: |
+          echo "==> Updating feeds..."
+          ./scripts/feeds update -a
+          echo "==> Installing feeds..."
           ./scripts/feeds install -a
 
-      - name: Configure Askey Profile
+      - name: Configure Askey SBE1V1K Profile
         run: |
-          # 精確選定最正統的萬兆 6.18 型號名冊
-          echo "CONFIG_TARGET_qualcommbe=y" > .config
-          echo "CONFIG_TARGET_qualcommbe_ipq95xx=y" >> .config
-          echo "CONFIG_TARGET_qualcommbe_ipq95xx_DEVICE_askey_sbe1v1k=y" >> .config
-          echo "CONFIG_PACKAGE_luci=y" >> .config
+          echo "==> Generating .config for Askey SBE1V1K..."
+          cat > .config << 'EOF'
+          CONFIG_TARGET_qualcommbe=y
+          CONFIG_TARGET_qualcommbe_ipq95xx=y
+          CONFIG_TARGET_qualcommbe_ipq95xx_DEVICE_askey_sbe1v1k=y
+          CONFIG_PACKAGE_luci=y
+          CONFIG_AUTOREBUILD=n
+          CONFIG_SIGNATURE_CHECK=n
+          CONFIG_SIGNED_PACKAGES=n
+          CONFIG_KERNEL_DEBUG_INFO=n
+          CONFIG_KERNEL_DEBUG_INFO_REDUCED=n
+          EOF
           
-          echo "CONFIG_AUTOREBUILD=n" >> .config
-          echo "CONFIG_SIGNATURE_CHECK=n" >> .config
-          echo "CONFIG_SIGNED_PACKAGES=n" >> .config
-          echo "CONFIG_KERNEL_DEBUG_INFO=n" >> .config
-          echo "CONFIG_KERNEL_DEBUG_INFO_REDUCED=n" >> .config
+          echo "==> Running make defconfig..."
           make defconfig
+          
+          echo "==> Generated .config:"
+          grep "CONFIG_TARGET\|CONFIG_DEVICE" .config
 
-      - name: Apply Universal Patch and Force Tools Reset
+      - name: Download sources and packages
         run: |
-          mkdir -p staging_dir/host
-          touch staging_dir/host/.prereq-build
-          rm -rf staging_dir/host/bin/m4 staging_dir/host/bin/bison staging_dir/host/bin/quilt staging_dir/host/bin/sed staging_dir/host/bin/mmp 2>/dev/null || true
-          
-          mkdir -p staging_dir/hostpkg/bin staging_dir/hostpkg/stamp
-          
-          find . -type f \( -name "Makefile" -o -name "*.mk" -o -name "Kbuild" -o -name "*.rules" -o -name "Config.in" \) -exec sed -i 's/-Werror//gI' {} + 2>/dev/null
-          find . -type f \( -name "Makefile" -o -name "*.mk" -o -name "Kbuild" -o -name "*.rules" -o -name "Config.in" \) -exec sed -i 's/-Werror=all//gI' {} + 2>/dev/null
-          
-          # 【對齊官方萬兆 6.18 內核鋼印】
-          echo "KERNEL_BUILD_DIR:=6.18.35-1" >> include/kernel.mk
-          echo "LINUX_VERSION:=6.18.35" >> include/kernel.mk
-          
-          sed -i 's/tools-y += gnulib/# tools-y += gnulib/g' tools/Makefile 2>/dev/null
-          find ./include ./scripts ./package -type f \( -name "*.mk" -o -name "*.sh" -o -name "Makefile" \) -exec sed -i 's/\~/./g' {} + 2>/dev/null
+          echo "==> Downloading sources..."
+          make download -j$(nproc) V=s
+        continue-on-error: true
 
       - name: Compile and Package Firmware
         run: |
+          echo "==> Starting firmware compilation..."
           export FORCE_UNSAFE_CONFIGURE=1
-          export HOST_CFLAGS="-w -Wno-error -Wno-implicit-function-declaration"
+          export HOST_CFLAGS="-w -Wno-error"
           export HOST_CXXFLAGS="-w -Wno-error"
-          export TARGET_CFLAGS="-w -Wno-error -Wno-implicit-function-declaration"
+          export TARGET_CFLAGS="-w -Wno-error"
           export TARGET_CXXFLAGS="-w -Wno-error"
-          export EXTRA_CFLAGS="-w -Wno-error -Wno-implicit-function-declaration"
-          export KBUILD_CFLAGS="-w -Wno-error -Wno-implicit-function-declaration"
-          export CFLAGS="-w -Wno-error"
-          export CXXFLAGS="-w -Wno-error"
           
-          make -j$(nproc) V=s CONFIG_AUTOREBUILD=n -i || true
+          # Do NOT use -i flag - we need to fail on errors
+          make -j$(nproc) V=s 2>&1 | tee build.log
+          
+          if [ $? -eq 0 ]; then
+            echo "✅ Compilation succeeded"
+          else
+            echo "❌ Compilation failed"
+            exit 1
+          fi
 
-      - name: Hard Copy Real Large Firmware Binaries
+      - name: Check Build Results
         run: |
-          # 【貨艙精確直連】物理抄底真正由 6.18 內核打包出的 openwrt 安裝大包！
-          mkdir -p /home/runner/askey_output
-          cp -v bin/targets/qualcommbe/ipq95xx/openwrt-* /home/runner/askey_output/ 2>/dev/null || true
-          echo "==> Checked Real Files in Output Cargo:"
-          ls -lh /home/runner/askey_output/
+          echo "==> Checking for compiled firmware..."
+          if [ -d "bin/targets/qualcommbe/ipq95xx" ]; then
+            echo "✅ Output directory found"
+            echo "==> Firmware files:"
+            ls -lh bin/targets/qualcommbe/ipq95xx/
+            
+            echo ""
+            echo "==> File details:"
+            file bin/targets/qualcommbe/ipq95xx/*
+            
+            echo ""
+            echo "==> Checking firmware integrity:"
+            for f in bin/targets/qualcommbe/ipq95xx/*; do
+              if [ -f "$f" ]; then
+                size=$(stat -f%z "$f" 2>/dev/null || stat -c%s "$f" 2>/dev/null)
+                echo "  $f (size: $size bytes)"
+              fi
+            done
+          else
+            echo "❌ Output directory not found!"
+            echo "==> Build log (last 200 lines):"
+            tail -200 build.log
+            exit 1
+          fi
 
-      - name: Upload Finished Firmware Artifacts
+      - name: Save Build Log
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: Askey_SBE1V1K_6.18_Genuine_Firmware
-          path: /home/runner/askey_output/
+          name: build-log-${{ github.run_id }}
+          path: build.log
+          retention-days: 30
+
+      - name: Upload Firmware Artifacts
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Askey_SBE1V1K_Firmware_${{ github.run_id }}
+          path: bin/targets/qualcommbe/ipq95xx/
+          retention-days: 30
+
+      - name: Create GitHub Release
+        if: success()
+        uses: softprops/action-gh-release@v1
+        with:
+          files: bin/targets/qualcommbe/ipq95xx/*
+          tag_name: sbe1v1k-build-${{ github.run_id }}
+          body: |
+            # Askey SBE1V1K Firmware Build
+            
+            **Build Details:**
+            - Branch: sbe1v1k
+            - Commit: ${{ github.sha }}
+            - Build Time: ${{ github.event.head_commit.timestamp }}
+            - Run: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+            
+            **Files:**
+            - Check the artifacts for compiled firmware images
+            
+            **Flashing Instructions:**
+            1. Download the firmware from artifacts or release
+            2. Use your device's web interface or serial console to flash
+            3. Wait for the system to boot
+            4. If it fails to boot, check the serial console output for errors
+            
+            **Troubleshooting:**
+            - If device fails to boot after flashing, check the build log
+            - Compare file sizes with your original firmware
+            - Ensure you're using the correct firmware for your device
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: true
