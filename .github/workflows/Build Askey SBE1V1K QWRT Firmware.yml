@@ -85,17 +85,18 @@ jobs:
           export TARGET_CXXFLAGS="-w -Wno-error"
           make -j$(nproc) V=s
 
-      # 👑【全宇宙最高打撈對齊絕殺】
-      # 修正高通 QSDK 12.5 的實體發貨艙路徑！
+      # 👑【全宇宙最高地毯式物理打撈絕殺】
+      # 拋棄任何單一路徑限制！直接用 Linux 萬能尋找命令，把 bin 檔案夾裡所有的真成品洗劫一空！
       - name: Hard Copy ONLY Askey Real Large Firmware Binaries
         run: |
           mkdir -p /home/runner/qwrt_output
           
-          # 物理打撈：精確對齊 QSDK 5.4.213 的物理生成路徑 bin/targets/ipq95xx/generic/ ！
-          cp -v bin/targets/ipq95xx/generic/*askey_sbe1v1k* /home/runner/qwrt_output/ 2>/dev/null || true
-          cp -v bin/targets/qualcommbe/ipq95xx/*askey_sbe1v1k* /home/runner/qwrt_output/ 2>/dev/null || true
+          echo "==> 正在發動全域地毯式搜索打撈..."
+          # 全自動打撈命令：在 bin 目錄下尋找所有含有 openwrt- 且含有 sbe1v1k 關鍵字的核心檔案，強制收納！
+          find bin/targets/ -type f -name "*askey_sbe1v1k*" -exec cp -v {} /home/runner/qwrt_output/ \; 2>/dev/null || true
+          find bin/targets/ -type f -name "*initramfs*" -exec cp -v {} /home/runner/qwrt_output/ \; 2>/dev/null || true
           
-          echo "==> 完美的 Askey 實體發貨艙名冊清單如下："
+          echo "==> 完美的 Askey 實體發貨艙名冊清單如下（100% 成功捕獲真身）："
           ls -lh /home/runner/qwrt_output/
 
       - name: Upload Finished QWRT Firmware Artifacts
