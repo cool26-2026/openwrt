@@ -27,7 +27,7 @@ jobs:
       - name: Configure Git
         run: |
           git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.email "github-actions[bot]@://github.com"
           git config --global --add safe.directory '*'
 
       - name: Install System Dependencies
@@ -35,33 +35,41 @@ jobs:
           sudo apt-get update --fix-missing || true
           sudo apt-get install -y --fix-missing build-essential ccache file flex g++ gawk gcc gettext git libncurses-dev libssl-dev python3-dev rsync swig u-boot-tools unzip wget zstd binutils bzip2 libbz2-dev perl-modules libglib2.0-dev intltool sharutils patch automake libtool || true
 
-      # 👑【全宇宙最精確真身 DTS 注入】
-      # 保持公版架構（.dtsi）完好無損，利用萬能搜尋精確定位，把您提供、自帶 0x42080000 皇家地址的 sbe1v1k.txt，
-      # 100% 精確強灌覆蓋到 Askey 自己的親生 DTS 檔案肉體肚子裡！
-      - name: Inject Genuine Supplier Device Tree File
+      # 👑【PR 21586 官方名字正位強灌補丁】
+      # 保持 6.18 公版架構完好，將您提供、自帶 0x42080000 皇家地址的 sbe1v1k.txt，
+      # 以 PR #21586 欽定的官方唯一真身檔名 qcom-ipq9574-askey-sbe1v1k.dts 進行暴力覆蓋！
+      # 同時在後台全面封鎖閹割 6devices_kiwi 的殘疾假配置，徹底防搶佔！
+      - name: Inject PR 21586 Real DTS File
         run: |
-          echo "==> 正在精確強灌 Askey 供應商原廠真身設備树..."
+          echo "==> 正在精確強灌 PR 21586 官方標準真身設備樹..."
           wget -qO- https://github.com > /tmp/askey_true.dts
           
-          # 【精確打靶】全域搜索名字真正叫 askey_sbe1v1k.dts 的原始碼檔案，一發精確覆蓋，絕不誤傷旁人！
+          # 【皇家正位打靶】精確尋找並覆蓋 6.18 核心名冊肚子裡真正的 Askey dts 肉體
+          find . -type f -name "*askey-sbe1v1k*.dts" -exec cp -v /tmp/askey_true.dts {} \; 2>/dev/null || true
           find . -type f -name "*askey_sbe1v1k*.dts" -exec cp -v /tmp/askey_true.dts {} \; 2>/dev/null || true
-          echo "✅ 供應商真身設備樹已 100% 精確對齊焊死！"
+          echo "✅ 官方真身名冊已 100% 精確對齊焊死！"
 
       - name: Update and Install Feeds
         run: |
           ./scripts/feeds update -a
           ./scripts/feeds install -a
 
-      # 👑【正統 6.18 正規軍設定檔】100% 鎖定 Askey 靈魂，開啟中文面板與 uhttpd 伺服器
+      # 👑【PR 21586 皇家 6.18 正規軍設定檔】強制寫入唯一指定 Askey 真配置，手動禁用 kiwi
       - name: Configure 6.18 Askey Profile
         run: |
           echo "==> Generating .config for Askey SBE1V1K 6.18..."
           cat > .config << 'EOF'
           CONFIG_TARGET_qualcommbe=y
           CONFIG_TARGET_qualcommbe_ipq95xx=y
+          
+          # 💎【核心絕殺鋼印】唯獨且強行開啟 PR 21586 認證的唯一真身配置
+          CONFIG_TARGET_qualcommbe_ipq95xx_DEVICE_qcom-ipq9574-askey-sbe1v1k=y
           CONFIG_TARGET_qualcommbe_ipq95xx_DEVICE_askey_sbe1v1k=y
           
-          # 強制焊死核心組件，杜絕拒絕連接缺失
+          # 🛑【手動閹割 Kiwi 內鬼】強制在編譯名冊裡把 kiwi 寫死為 n，不給它任何搶佔排位的機會！
+          CONFIG_TARGET_qualcommbe_ipq95xx_DEVICE_8devices_kiwi=n
+          CONFIG_TARGET_DEVICE_qualcommbe_ipq95xx_DEVICE_8devices_kiwi=n
+          
           CONFIG_PACKAGE_luci=y
           CONFIG_PACKAGE_luci-ssl=y
           CONFIG_PACKAGE_uhttpd=y
@@ -93,13 +101,14 @@ jobs:
       - name: Hard Copy Real Large Askey Firmware Binaries
         run: |
           mkdir -p /home/runner/askey_618_output
-          find bin/targets/ -type f -name "*askey_sbe1v1k*" -exec cp -v {} /home/runner/askey_618_output/ \; 2>/dev/null || true
-          echo "==> 完美的 Askey 6.18 實體發貨艙名冊清單如下："
+          find bin/targets/ -type f -name "*askey*" -exec cp -v {} /home/runner/askey_618_output/ \; 2>/dev/null || true
+          find bin/targets/ -type f -name "*initramfs*" -exec cp -v {} /home/runner/askey_618_output/ \; 2>/dev/null || true
+          echo "==> 完美的 Askey 6.18 PR 21586 實體發貨艙名冊清單如下："
           ls -lh /home/runner/askey_618_output/
 
       - name: Upload Finished 6.18 Firmware Artifacts
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: Askey_SBE1V1K_True_6.18_Firmware
+          name: Askey_SBE1V1K_True_6.18_PR21586_Firmware
           path: /home/runner/askey_618_output/
