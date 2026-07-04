@@ -118,6 +118,49 @@ jobs:
             exit 1
           fi
 
+      - name: Check for ath12k board and calibration files
+        if: always()
+        run: |
+          echo "==> Searching for ath12k firmware board and calibration files..."
+          mkdir -p fw-files
+          find bin -type f \( -iname 'board-2.bin' -o -iname 'board.bin' -o -iname 'cal-*.bin' -o -ipath '*/lib/firmware/ath12k/*' \) -print > found.txt || true
+          if [ -s found.txt ]; then
+            echo "Files found in bin/ (copying to fw-files/)"
+            while read -r f; do
+              echo "  $f"
+              # preserve directory structure when possible
+              dest_dir=$(dirname "$f")
+              mkdir -p "fw-files/$dest_dir"
+              cp -a "$f" "fw-files/$dest_dir/" 2>/dev/null || cp -a "$f" "fw-files/" 2>/dev/null || true
+            done < found.txt
+          else
+            echo "No direct board/cal files found under bin/. Will inspect archives."
+          fi
+
+          # Inspect common rootfs archives for ath12k content
+          shopt -s nullglob || true
+          for t in bin/targets/**/rootfs* bin/targets/**/openwrt-*rootfs*; do
+            [ -f "$t" ] || continue
+            echo "Inspecting archive: $t"
+            tar -tzf "$t" 2>/dev/null | grep -i 'ath12k' || true
+            tar -tzf "$t" 2>/dev/null | grep -i 'board-2.bin\|board.bin\|cal-' || true
+          done || true
+
+          # Additional search inside bin for any ath12k references
+          echo "Full search for 'ath12k' paths in bin/:"
+          grep -Irl "ath12k" bin || true
+
+          echo "Files collected (fw-files/):"
+          find fw-files -type f -maxdepth 6 -print || true
+
+      - name: Upload ath12k firmware findings
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ath12k-files-${{ github.run_id }}
+          path: fw-files
+          retention-days: 30
+
       - name: Save Build Log
         if: always()
         uses: actions/upload-artifact@v4
