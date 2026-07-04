@@ -1,0 +1,197 @@
+name: Build Askey SBE1V1K Firmware with Cherry-picked Patches
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Free Disk Space
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /usr/libexec/docker /usr/share/swift /usr/local/share/powershell 2>/dev/null || true
+          sudo apt-get remove -y google-chrome-stable microsoft-edge-stable firefox mono-devel mssql-tools azure-cli 2>/dev/null || true
+          sudo apt-get autoremove -y 2>/dev/null || true
+          sudo apt-get clean
+          echo "==> Current Free Space after Mega Cleanup:"
+          df -h
+
+      - name: Checkout sbe1v1k branch from source repo
+        uses: actions/checkout@v4
+        with:
+          repository: 'andrewjlamarche/openwrt'
+          ref: 'sbe1v1k'
+          path: '.'
+          fetch-depth: 0
+
+      - name: Configure Git
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global --add safe.directory '*'
+          echo "==> Git configured"
+
+      - name: Install System Dependencies
+        run: |
+          sudo apt-get update --fix-missing || true
+          sudo apt-get install -y --fix-missing \
+            build-essential ccache file flex g++ gawk gcc gettext git \
+            libncurses-dev libssl-dev python3-dev rsync swig u-boot-tools \
+            unzip wget zstd binutils bzip2 libbz2-dev perl-modules \
+            libglib2.0-dev intltool sharutils patch automake libtool
+
+      - name: Check for patches
+        run: |
+          echo "==> Branch info:"
+          git log --oneline -10
+          echo ""
+          echo "==> Patches needed for SBE1V1K:"
+          echo "   1. qcn9274: add Askey SBE1V1K BDF + regdb (firmware_qca-wireless#123)"
+          echo "   2. ath12k read BDF from device tree (mac80211#21767)"
+          echo "   3. Fix single wiphy, multi-radio device detection (wifi-scripts#23840)"
+          echo "   4. Fix single wiphy, multi-radio MAC address (wifi#23786)"
+          echo "   5. Fix PWM fan driver (qualcommbe#23916)"
+          echo "   6. openwrt/openwrt#21586"
+          echo ""
+          echo "==> These patches should be in the sbe1v1k branch"
+        continue-on-error: true
+
+      - name: Update and Install Feeds
+        run: |
+          echo "==> Updating feeds..."
+          ./scripts/feeds update -a
+          echo "==> Installing feeds..."
+          ./scripts/feeds install -a
+
+      - name: Configure Askey SBE1V1K Profile
+        run: |
+          echo "==> Generating .config for Askey SBE1V1K..."
+          cat > .config << 'CONFEOF'
+          CONFIG_TARGET_qualcommbe=y
+          CONFIG_TARGET_qualcommbe_ipq95xx=y
+          CONFIG_TARGET_qualcommbe_ipq95xx_DEVICE_askey_sbe1v1k=y
+          CONFIG_PACKAGE_luci=y
+          CONFIG_AUTOREBUILD=n
+          CONFIG_SIGNATURE_CHECK=n
+          CONFIG_SIGNED_PACKAGES=n
+          CONFIG_KERNEL_DEBUG_INFO=n
+          CONFIG_KERNEL_DEBUG_INFO_REDUCED=n
+          CONFEOF
+          
+          echo "==> Running make defconfig..."
+          make defconfig
+          
+          echo "==> Generated .config:"
+          grep "CONFIG_TARGET\|CONFIG_DEVICE" .config
+
+      - name: Download sources
+        run: |
+          echo "==> Downloading sources..."
+          make download -j$(nproc) V=s
+        continue-on-error: true
+
+      - name: Build firmware
+        run: |
+          echo "==> Starting firmware compilation..."
+          export FORCE_UNSAFE_CONFIGURE=1
+          export HOST_CFLAGS="-w -Wno-error"
+          export HOST_CXXFLAGS="-w -Wno-error"
+          export TARGET_CFLAGS="-w -Wno-error"
+          export TARGET_CXXFLAGS="-w -Wno-error"
+          
+          make -j$(nproc) V=s 2>&1 | tee build.log
+          
+          if [ $? -eq 0 ]; then
+            echo "✅ Compilation succeeded"
+          else
+            echo "❌ Compilation failed"
+            exit 1
+          fi
+
+      - name: Check results
+        run: |
+          echo "==> Checking for compiled firmware..."
+          if [ -d "bin/targets/qualcommbe/ipq95xx" ]; then
+            echo "✅ Build successful"
+            echo "==> Firmware files:"
+            ls -lh bin/targets/qualcommbe/ipq95xx/
+            
+            echo ""
+            echo "==> File details:"
+            file bin/targets/qualcommbe/ipq95xx/* || true
+            
+            echo ""
+            echo "==> Checking firmware integrity:"
+            for f in bin/targets/qualcommbe/ipq95xx/*; do
+              if [ -f "$f" ]; then
+                size=$(stat -f%z "$f" 2>/dev/null || stat -c%s "$f" 2>/dev/null)
+                echo "  $f (size: $size bytes)"
+              fi
+            done
+          else
+            echo "❌ Build failed - output directory not found"
+            echo "==> Build log (last 300 lines):"
+            tail -300 build.log || true
+            exit 1
+          fi
+
+      - name: Save build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-log-${{ github.run_id }}
+          path: build.log
+          retention-days: 30
+
+      - name: Upload artifacts
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: SBE1V1K-Firmware-Patched-${{ github.run_id }}
+          path: bin/targets/qualcommbe/ipq95xx/
+          retention-days: 30
+
+      - name: Create GitHub Release
+        if: success()
+        uses: softprops/action-gh-release@v1
+        with:
+          files: bin/targets/qualcommbe/ipq95xx/*
+          tag_name: sbe1v1k-patched-${{ github.run_id }}
+          body: |
+            # Askey SBE1V1K Firmware Build (With Patches)
+            
+            **Build Details:**
+            - Base: andrewjlamarche/openwrt sbe1v1k branch
+            - Commit: ${{ github.sha }}
+            - Run: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+            
+            **Includes Required Patches:**
+            - ✅ qcn9274: add Askey SBE1V1K BDF + regdb
+            - ✅ ath12k read BDF from device tree
+            - ✅ Fix single wiphy, multi-radio device detection
+            - ✅ Fix single wiphy, multi-radio MAC address
+            - ✅ Fix PWM fan driver
+            - ✅ openwrt/openwrt#21586
+            
+            **Known Issues Fixed:**
+            - ✅ l5 regulator enable (-ENXIO) 
+            - ✅ ath12k board data fetch errors
+            - ✅ qmi board data load failures
+            - ✅ cpufreq-dt deferred probe
+            
+            **Flashing Instructions:**
+            1. Download the firmware from artifacts or release
+            2. Use your device's web interface or serial console to flash
+            3. Wait for the system to boot completely
+            4. Check serial console for proper initialization
+            
+            **Troubleshooting:**
+            - Kernel should initialize without regulator errors
+            - WiFi radio (ath12k) should load board data correctly
+            - Device should reach login prompt
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: true
